@@ -1,4 +1,4 @@
-# 📋 Pensionados MX v23
+# 📋 Pensionados MX v22
 
 App web progresiva (PWA) para gestión de beneficiarios de programas sociales. Funciona **100% sin internet** después de la primera carga, y se puede instalar en cualquier dispositivo como app nativa.
 
@@ -42,39 +42,31 @@ App web progresiva (PWA) para gestión de beneficiarios de programas sociales. F
 
 ---
 
-## 🔧 Correcciones y mejoras en v23
+## 🔧 Mejoras incluidas en v22
 
-### 🐛 Bugs corregidos
-- **Tab "Importar" rota** — la pantalla ya funciona correctamente al abrirla
-- **Secciones/Rutas invisibles en Inicio** — el bloque de secciones ahora aparece correctamente
-- **Botón ocultar secciones sin efecto** — ya colapsa y expande correctamente
-- **Duplicados en Inicio sin respuesta** — el card de duplicados ya abre el filtro correcto
-- **Migración de datos corregida** — recupera datos de versiones anteriores (v9, v8…)
-- **Sheet de filtro rápido sin botón cerrar** — ahora tiene botón ✕ visible
-- **Pantalla Estadísticas sin estilos** — números y tarjetas ya se ven correctamente
-- **Búsqueda por voz sin estilos** — el cuadro de escucha ya es visible
+- **IndexedDB** para almacenamiento de datos (sin límite de 5MB de iOS)
+- **Fix de teclado iOS** — la barra inferior ya no se desacomoda al escribir
+- **`100dvh`** — la pantalla ya no se corta por la barra de Safari
+- **Service Worker sincronizado** — detecta actualizaciones automáticamente
+- **Barra de "Nueva versión disponible"** con botón para actualizar
+- **Blur reducido** en iPhones lentos para evitar congelamiento
+- **Doble respaldo** de datos: IndexedDB principal + localStorage como copia
 
-### ✨ Mejoras
-- Pantalla **Importar** con estadísticas en tiempo real y guía de formato CSV
-- Estado vacío en **Inicio** con botones directos "Agregar" e "Importar CSV"
-- **Marcar visitados** ahora registra en historial y actualiza el inicio
-- Diseño responsive mejorado para pantallas ≤ 360 px
+---
+
+## 💾 Almacenamiento de datos
+
+Los datos se guardan **localmente en el dispositivo** usando IndexedDB. No se envía nada a ningún servidor. Para hacer respaldo manual, usa el botón **"Exportar JSON"** dentro de la app.
 
 ---
 
 ## 🔄 Cómo actualizar la app
 
 Cuando hagas cambios al código:
-1. Cambia `CACHE_NAME` en `sw.js` a la siguiente versión (ej. `pensionados-v24`)
+1. Cambia `CACHE_NAME` en `sw.js` a la siguiente versión (ej. `pensionados-v23`)
 2. Actualiza el `<title>` en `index.html`
 3. Sube los archivos al repositorio
 4. La próxima vez que el usuario abra la app, verá la barra azul de actualización
-
----
-
-## 💾 Almacenamiento de datos
-
-Los datos se guardan **localmente en el dispositivo** usando localStorage / IndexedDB. No se envía nada a ningún servidor. Para hacer respaldo manual, usa el botón **"Exportar JSON"** dentro de la app (pestaña Exportar).
 
 ---
 

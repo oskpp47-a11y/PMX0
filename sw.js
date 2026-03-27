@@ -1,5 +1,5 @@
-// Pensionados MX — Service Worker v23
-const CACHE_NAME = 'pensionados-v23';
+// Pensionados MX — Service Worker v22
+const CACHE_NAME = 'pensionados-v22';
 
 const ASSETS = [
   './',

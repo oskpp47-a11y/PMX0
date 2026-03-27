@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Pensionados MX"/>
 <meta name="theme-color" id="meta-tc" content="#05090f"/>
-<title>Pensionados MX v23</title>
+<title>Pensionados MX v22</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ========== THEMES ========== */
@@ -745,6 +745,11 @@ body{display:flex;flex-direction:column;}
 /* ── v22: SW update bar ── */
 .sw-update-bar{display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#6366f1;color:#fff;font-size:11px;font-weight:700;padding:8px 14px;align-items:center;justify-content:space-between;gap:8px;}
 .sw-update-bar.show{display:flex;}
+/* ── v23: Meta/Streak/Nota widgets ── */
+.meta-pulse{animation:metaPulse 2s ease infinite;}
+@keyframes metaPulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+.streak-fire{display:inline-block;animation:fireBounce .8s ease infinite alternate;}
+@keyframes fireBounce{from{transform:scale(1);}to{transform:scale(1.2);}}
 
 
 
@@ -1106,29 +1111,6 @@ html,body{font-size:15px;-webkit-font-smoothing:antialiased;text-rendering:optim
 .sheet{will-change:transform;}
 .fab{will-change:transform;}
 
-/* ── STAT QUICK (Estadísticas) ── */
-.stat-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
-.sqc{background:var(--card);border:1px solid var(--b1);border-radius:var(--r2);padding:12px 8px;text-align:center;}
-.sqc-n{font-size:26px;font-weight:800;font-family:'Fira Code',monospace;line-height:1;margin-bottom:3px;}
-.sqc-l{font-size:9px;font-weight:700;color:var(--sft);text-transform:uppercase;letter-spacing:.5px;}
-
-/* ── VOICE SEARCH ── */
-.listen-wrap{display:none;text-align:center;padding:24px 16px;background:var(--card);border:1.5px solid var(--red);border-radius:var(--r);margin-bottom:10px;}
-.listen-wrap.on{display:block;animation:fu .2s ease;}
-.listen-ring{font-size:40px;margin-bottom:10px;animation:pulse 1s infinite;}
-
-/* ── SRCH ADV BTN activo ── */
-#srch-adv-btn{transition:.15s;border-radius:8px;padding:4px 6px;}
-
-/* ── ALERTA sin visitar (fix color tema claro) ── */
-[data-theme=arctic] .alert-count,[data-theme=campo] .alert-count{color:#dc2626;}
-
-/* ── FIX: rec-info 3 columnas visible en iOS ── */
-@media (max-width:360px){
-  .rec-info{grid-template-columns:1fr 1fr;}
-  .stat-quick{grid-template-columns:repeat(2,1fr);}
-}
-
 </style>
 <script>
 if('serviceWorker' in navigator){
@@ -1192,6 +1174,8 @@ if('serviceWorker' in navigator){
 <div class="main" id="main">
   <!-- INICIO -->
   <div class="pg on" id="p-inicio">
+    <!-- v23: Cumpleaños próximos -->
+    <div id="bd-alert-wrap"></div>
     <!-- v17: Alerta sin visitar -->
     <div id="alert-no-visit-wrap"></div>
     <!-- Búsqueda rápida -->
@@ -1223,7 +1207,10 @@ if('serviceWorker' in navigator){
     <div class="sh2">Programas</div>
     <div class="prog-row" id="prog-row"></div>
     <div id="pend-wrap"></div>
-    <div id="sec-toggle-area"></div>
+
+    <!-- v23: Meta del día + Racha + Nota -->
+    <div id="meta-widgets-wrap"></div>
+
     <div class="sh2">Recientes <span class="sh2-n" id="rc-n">0</span></div>
     <div class="recs" id="rec-recent"></div>
   </div>
@@ -1289,6 +1276,12 @@ if('serviceWorker' in navigator){
       <div style="display:flex;gap:6px">
         <select class="fs" id="srch-f-sec" onchange="execSrchAdv()" style="flex:1;font-size:12px;padding:8px 10px">
           <option value="">Todas las secciones</option>
+        </select>
+        <select class="fs" id="srch-f-area" onchange="execSrchAdv()" style="flex:1;font-size:12px;padding:8px 10px">
+          <option value="">Todas las áreas</option>
+        </select>
+        <select class="fs" id="srch-f-ruta" onchange="execSrchAdv()" style="flex:1;font-size:12px;padding:8px 10px">
+          <option value="">Todas las rutas</option>
         </select>
         <button class="btn btn-s" style="font-size:11px;padding:8px 12px;white-space:nowrap" onclick="clearSrchAdv()">✕ Limpiar</button>
       </div>
@@ -1367,28 +1360,14 @@ if('serviceWorker' in navigator){
   </div>
   <!-- IMPORTAR -->
   <div class="pg" id="p-importar">
-    <div id="imp-stats-bar"></div>
     <div class="imp-z">
       <div class="imp-ico">📂</div>
       <h3>Importar Excel / CSV</h3>
-      <p>Analiza el archivo, detecta duplicados y reubica la información automáticamente.<br><span style="font-size:10px;color:var(--amb)">⚠️ Excel (.xlsx) → convertir a CSV primero (Numbers → Exportar → CSV)</span></p>
+      <p>Detecta columnas automáticamente aunque estén desordenadas. Soporta: coma, punto y coma, tabulador.</p>
       <input type="file" id="file-in" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImp(event)"/>
-      <button class="imp-btn" onclick="document.getElementById('file-in').click()">📂 Seleccionar archivo CSV</button>
+      <button class="imp-btn" onclick="document.getElementById('file-in').click()">Seleccionar archivo</button>
     </div>
-    <div style="background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:10px;">
-      <div style="font-size:9px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📋 Formato esperado del CSV</div>
-      <div style="font-size:10px;font-family:'Fira Code',monospace;color:var(--sft);background:var(--s2);border-radius:8px;padding:9px;overflow-x:auto;white-space:nowrap">FOLIO,NOMBRE,TIPO,TELEFONO,DOMICILIO,COLONIA,ESTATUS</div>
-      <div style="font-size:10px;color:var(--mut);margin-top:8px;line-height:1.6">
-        Columnas reconocidas: <span style="color:var(--a2)">folio, nombre, tipo, telefono, domicilio, numero, colonia, estatus, observacion</span><br>
-        Programas válidos: <span style="color:var(--a2)">PAM, PCD, JCF, MT, BBJ</span>
-      </div>
-    </div>
-    <div class="backup-card">
-      <div style="font-size:9px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">💾 Restaurar respaldo JSON</div>
-      <p style="font-size:11px;color:var(--mut);margin-bottom:10px;line-height:1.5">Restaura un respaldo completo (registros + historial + visitas).</p>
-      <input type="file" id="restore-in2" accept=".json" style="display:none" onchange="handleRestore(event)"/>
-      <button type="button" class="btn btn-s" style="font-size:12px" onclick="document.getElementById('restore-in2').click()">📥 Restaurar JSON</button>
-    </div>
+    <button onclick="dlCSVTemplate()" style="width:100%;padding:10px;background:var(--s2);border:1.5px dashed var(--b3);border-radius:var(--r2);color:var(--sft);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--fnt);margin-bottom:10px">📥 Descargar plantilla CSV con todos los campos</button>
     <div id="imp-out"></div>
   </div>
   <!-- SECCIONES -->
@@ -1530,7 +1509,15 @@ if('serviceWorker' in navigator){
     </div>
   </div>
   <div class="fg"><label class="fl">📝 Observaciones / Notas</label><textarea class="fta" id="e-obs" placeholder="Notas adicionales…" style="height:64px"></textarea></div>
-  <div class="fg"><label class="fl">Sección / Ruta</label><input class="fi" id="e-seccion" placeholder="Ej: 617, 618…"/></div>
+  <!-- v22: ID manual + Sección + Área + Ruta -->
+  <div class="fr2">
+    <div class="fg"><label class="fl">🆔 ID Manual <span style="font-size:9px;color:var(--mut)">(opcional)</span></label><input class="fi" id="e-id-manual" placeholder="Ej: 001" style="font-family:'Fira Code',monospace" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div>
+    <div class="fg"><label class="fl">📂 Sección</label><input class="fi" id="e-seccion" placeholder="Ej: 617, 618…"/></div>
+  </div>
+  <div class="fr2">
+    <div class="fg"><label class="fl">🏘️ Área</label><input class="fi" id="e-area" placeholder="Ej: Norte, Sur, Centro…"/></div>
+    <div class="fg"><label class="fl">🗺️ Ruta</label><input class="fi" id="e-ruta" placeholder="Ej: Ruta 1, A-3…"/></div>
+  </div>
   <div class="fg" id="e-reason-wrap" style="display:none">
     <label class="fl">Motivo de edición</label>
     <input class="fi" id="e-reason" placeholder="¿Qué se modificó?"/>
@@ -1591,13 +1578,9 @@ if('serviceWorker' in navigator){
   <div class="hdl"></div>
   <div class="qf-hdr">
     <div class="qf-title" id="qf-t">Registros</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="qf-n" id="qf-n">0</div>
-      <button type="button" class="hdr-btn" onclick="closeSheet('sh-qf')" style="font-size:15px">✕</button>
-    </div>
+    <div class="qf-n" id="qf-n">0</div>
   </div>
   <div class="recs" id="qf-list"></div>
-  <div style="height:16px"></div>
 </div>
 <!-- SHEET: DUPLICADOS -->
 <div class="sheet" id="sh-dups">
@@ -1807,7 +1790,7 @@ function go(tab){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   const nb=document.getElementById('nb-'+tab);if(nb)nb.classList.add('on');
   document.getElementById('main').scrollTop=0;
-  const noFab=['estadisticas','descargar','historial','secciones','importar'].includes(tab);
+  const noFab=['estadisticas','descargar','historial','secciones'].includes(tab);
   document.getElementById('fab').style.display=noFab?'none':'flex';
   render(tab);
 }
@@ -1818,7 +1801,6 @@ function render(t){
   if(t==='visitas')       renderVis();
   if(t==='estadisticas')  renderStats();
   if(t==='descargar')     renderDL();
-  if(t==='importar')      renderImportar();
   if(t==='secciones')     renderSecPg();
   if(t==='historial')     renderHist();
 }
@@ -1903,7 +1885,7 @@ function cycleUso(id,e){
 function toggleSecciones(){
   seccionesVisible=!seccionesVisible;
   localStorage.setItem('px_sec_visible', seccionesVisible ? 'true' : 'false');
-  renderSeccionesToggle();
+  // secciones toggle en inicio desactivado
 }
 function renderSeccionesToggle(){
   const area=document.getElementById('sec-toggle-area');
@@ -1973,6 +1955,34 @@ function _renderInicioInner(){
 
   // HERO TOTAL
   document.getElementById('hero-n-total').textContent=total;
+
+  // v23: ALERTA CUMPLEAÑOS PRÓXIMOS (7 días)
+  const hoy=new Date();const mm=hoy.getMonth()+1,dd=hoy.getDate();
+  const cumples=R.filter(r=>{
+    if(!r.fnac||r.estatus==='Baja')return false;
+    try{const[y,m,d]=r.fnac.split('-').map(Number);
+      if(!m||!d)return false;
+      // Días hasta el próximo cumpleaños
+      const next=new Date(hoy.getFullYear(),m-1,d);
+      if(next<hoy)next.setFullYear(hoy.getFullYear()+1);
+      const diff=Math.ceil((next-hoy)/(1000*60*60*24));
+      r._diasCumple=diff; return diff<=7;
+    }catch{return false;}
+  }).sort((a,b)=>a._diasCumple-b._diasCumple);
+  const bdWrap=document.getElementById('bd-alert-wrap');
+  if(bdWrap){
+    if(cumples.length){
+      bdWrap.innerHTML=`<div class="alert-no-visit" style="background:linear-gradient(135deg,#1a0a2e,#0d1220);border-color:#a78bfa;cursor:default">
+        <div class="alert-header">
+          <div class="alert-ico" style="background:#2d1b69">🎂</div>
+          <div><div class="alert-title" style="color:#a78bfa">Cumpleaños próximos</div>
+          <div class="alert-sub">${cumples.length} en los próximos 7 días</div></div>
+          <div class="alert-count" style="color:#a78bfa">${cumples.length}</div>
+        </div>
+        <div class="alert-names">${cumples.map(r=>`<span style="background:#2d1b69;color:#c4b5fd" onclick="openDet(${r.id})">${r.nombre.split(' ')[0]} <b style="color:#a78bfa">+${r._diasCumple}d</b></span>`).join('')}</div>
+      </div>`;
+    }else{bdWrap.innerHTML='';}
+  }
 
   // v17: ALERTA BENEFICIARIOS SIN VISITAR +30 DÍAS
   const sinVisitar30=R.filter(r=>{
@@ -2057,14 +2067,52 @@ function _renderInicioInner(){
       `<button class="btn btn-s" style="font-size:11px;padding:8px;margin-bottom:14px" onclick="openQF('pendientes','⏳ Pendientes')">Ver todos →</button>`;
   }else{pw.innerHTML='';}
 
-  // Secciones toggle en inicio
-  renderSeccionesToggle();
+  // secciones toggle en inicio desactivado
+
+  // v23: META DEL DÍA + RACHA + NOTA
+  const meta=getMetaDia();
+  const streak=getStreak();
+  const metaPct=meta.goal?Math.min(100,Math.round(meta.done/meta.goal*100)):0;
+  const notaHoy=localStorage.getItem('px_nota_hoy')||'';
+  const notaFecha=localStorage.getItem('px_nota_fecha')||'';
+  const metaWrap=document.getElementById('meta-widgets-wrap');
+  if(metaWrap){
+    metaWrap.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <!-- Meta del día -->
+      <div style="background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:13px 12px;cursor:pointer" onclick="openMetaSetDialog()">
+        <div style="font-size:9px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🎯 Meta del día</div>
+        <div style="font-size:26px;font-weight:800;font-family:'Fira Code',monospace;color:${metaPct>=100?'var(--grn)':'var(--a2)'}">
+          ${meta.done}<span style="font-size:13px;color:var(--mut)">/${meta.goal}</span>
+        </div>
+        <div style="height:5px;background:var(--b2);border-radius:3px;margin-top:7px;overflow:hidden">
+          <div style="height:100%;width:${metaPct}%;background:${metaPct>=100?'var(--grn)':'var(--a)'};border-radius:3px;transition:.5s"></div>
+        </div>
+        <div style="font-size:9px;color:var(--mut);margin-top:4px">${metaPct>=100?'✅ ¡Meta cumplida!':metaPct+'% completado'}</div>
+      </div>
+      <!-- Racha -->
+      <div style="background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:13px 12px">
+        <div style="font-size:9px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🔥 Racha</div>
+        <div style="font-size:26px;font-weight:800;font-family:'Fira Code',monospace;color:var(--org)">${streak.count}<span style="font-size:12px;color:var(--mut)"> días</span></div>
+        <div style="font-size:9px;color:var(--mut);margin-top:7px">🏆 Récord: ${streak.best} días</div>
+        <div style="font-size:9px;color:var(--mut);margin-top:2px">${streak.count>=3?'¡Sigue así! 💪':streak.count>=1?'Buen comienzo ✨':'Empieza hoy 🚀'}</div>
+      </div>
+    </div>
+    <!-- Nota del día -->
+    <div style="background:var(--card);border:1px solid var(--b1);border-left:3px solid var(--amb);border-radius:var(--r);padding:11px 13px;margin-bottom:12px;cursor:pointer" onclick="openNota()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${notaHoy&&notaFecha===today()?'5px':'0'}">
+        <span style="font-size:10px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.5px">📝 Nota del día</span>
+        <span style="font-size:10px;color:var(--a2);font-weight:700">Editar</span>
+      </div>
+      ${notaHoy&&notaFecha===today()?`<div style="font-size:12px;color:var(--t2);line-height:1.5;word-break:break-word">${notaHoy.slice(0,120)}${notaHoy.length>120?'…':''}</div>`:`<div style="font-size:11px;color:var(--mut)">Toca para agregar una nota de hoy…</div>`}
+    </div>`;
+  }
 
   const rec=[...R].reverse().slice(0,4);
   document.getElementById('rc-n').textContent=rec.length;
   document.getElementById('rec-recent').innerHTML=rec.length
     ? rec.map(recCard).join('')
-    : '<div class="empty"><div class="empty-ico">📋</div><h3>Sin registros aún</h3><p>Agrega tu primer beneficiario con el botón <b style="color:var(--a2)">＋</b> o importa un CSV</p><div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button type="button" class="btn btn-p" style="width:auto;padding:9px 18px;font-size:12px" onclick="openShAdd()">➕ Agregar</button><button type="button" class="btn btn-s" style="width:auto;padding:9px 18px;font-size:12px" onclick="go(\'importar\')">📂 Importar CSV</button></div></div>';
+    : '<div class="empty"><div class="empty-ico">📋</div><h3>Sin registros</h3><p>Toca ＋ para agregar</p></div>';
 }
 
 function buildHomeDonut(segs,total){
@@ -2118,7 +2166,6 @@ function openQF(filter,title){
     sin_visita_30: ()=>R.filter(r=>r.visita!=='Si'&&r.estatus!=='Baja'&&r.fecha&&daysSince(r.fecha)>30),
     vis_si:    ()=>R.filter(r=>r.visita==='Si'),
     vis_no:    ()=>R.filter(r=>r.visita==='No'),
-    dup:       ()=>{detectDups();return R.filter(r=>r.dup);},
   };
   let filtered;
   if(filter.startsWith('prog_'))filtered=R.filter(r=>r.tipo===filter.slice(5));
@@ -2243,6 +2290,133 @@ function removePhoto(e){
 }
 
 /* ===== BACKUP / RESTORE ===== */
+/* ===== FICHA IMPRIMIBLE ===== */
+/* ===== COMPARTIR REGISTRO ===== */
+function shareRecord(id){
+  const r=R.find(x=>x.id===id);if(!r)return;
+  const p=P[r.tipo]||{lbl:r.tipo};
+  const txt=`📋 *${r.nombre}*\n🆔 Folio: ${r.folio}\n${p.lbl} · ${r.estatus}\n📞 ${r.tel||'Sin tel.'}\n🏠 ${[r.dom,r.num,r.col].filter(Boolean).join(', ')||'Sin domicilio'}\n${r.seccion?'📍 Sección: '+r.seccion:''}${r.area?' · '+r.area:''}`;
+  if(navigator.share){
+    navigator.share({title:'Ficha beneficiario',text:txt}).catch(()=>{});
+  }else{
+    navigator.clipboard?.writeText(txt).then(()=>snack('📋 Copiado al portapapeles','📋'));
+  }
+}
+
+/* ===== RACHA DE TRABAJO (STREAK) ===== */
+function openMetaSetDialog(){
+  const meta=getMetaDia();
+  conf2('🎯 Meta del día',`<div style="margin-top:8px">
+    <label style="font-size:11px;color:var(--sft);font-weight:700;display:block;margin-bottom:6px">Visitas que quieres hacer hoy</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${[5,10,15,20,25,30].map(n=>`<button onclick="setMetaDia(${n});closeConf()" style="flex:1;min-width:48px;padding:10px 6px;background:${meta.goal===n?'var(--a)':'var(--s2)'};color:${meta.goal===n?'#fff':'var(--txt)'};border:1.5px solid ${meta.goal===n?'var(--a)':'var(--b2)'};border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--fnt)">${n}</button>`).join('')}
+    </div>
+  </div>`,()=>{},'Cerrar');
+}
+
+function updateStreak(){
+  const today_=today();
+  let streak=JSON.parse(localStorage.getItem('px_streak')||'{"last":"","count":0,"best":0}');
+  if(streak.last===today_)return streak;
+  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  const yd=yesterday.toISOString().slice(0,10);
+  if(streak.last===yd){streak.count++;} else {streak.count=1;}
+  streak.last=today_;
+  streak.best=Math.max(streak.best,streak.count);
+  localStorage.setItem('px_streak',JSON.stringify(streak));
+  return streak;
+}
+function getStreak(){return JSON.parse(localStorage.getItem('px_streak')||'{"last":"","count":0,"best":0}');}
+
+/* ===== META DEL DÍA ===== */
+function getMetaDia(){
+  const meta=JSON.parse(localStorage.getItem('px_meta')||'{"goal":10,"date":""}');
+  const today_=today();
+  if(meta.date!==today_){meta.date=today_;meta.done=0;localStorage.setItem('px_meta',JSON.stringify(meta));}
+  // Visitas hechas hoy
+  meta.done=V.filter(v=>v.date===today_).reduce((s,v)=>s+(v.people?.length||1),0);
+  return meta;
+}
+function setMetaDia(n){
+  const meta=getMetaDia();meta.goal=n;
+  localStorage.setItem('px_meta',JSON.stringify(meta));
+  renderInicio();snack(`🎯 Meta del día: ${n} visitas`,'🎯');
+}
+
+/* ===== NOTAS RÁPIDAS ===== */
+function openNota(){
+  const nota=localStorage.getItem('px_nota_hoy')||'';
+  const fecha=today();
+  conf2('📝 Nota del día',`<textarea id="nota-inp" style="width:100%;height:120px;background:var(--s2);border:1.5px solid var(--b2);border-radius:10px;color:var(--txt);font-family:var(--fnt);font-size:13px;padding:10px;resize:none;outline:none;margin-top:8px" placeholder="Anota lo que necesitas recordar hoy…">${nota}</textarea>`,()=>{
+    const v=document.getElementById('nota-inp')?.value||'';
+    localStorage.setItem('px_nota_hoy',v);
+    localStorage.setItem('px_nota_fecha',fecha);
+    renderInicio();snack('📝 Nota guardada','📝');
+  },'Guardar');
+  setTimeout(()=>document.getElementById('nota-inp')?.focus(),100);
+}
+
+function printRecord(id){
+  const r=R.find(x=>x.id===id);if(!r)return;
+  const p=P[r.tipo]||{ico:'📋',lbl:r.tipo,clr:'#6b85ad'};
+  const win=window.open('','_blank','width=420,height=600');
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/>
+  <title>Ficha ${r.nombre}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#111;padding:20px;font-size:13px;}
+    .header{background:linear-gradient(135deg,#1d4ed8,#6366f1);color:#fff;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+    .av{width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .name{font-size:16px;font-weight:800;letter-spacing:-.3px;}
+    .folio{font-size:11px;opacity:.75;font-family:monospace;margin-top:2px;}
+    .prog{display:inline-block;background:rgba(255,255,255,.2);padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700;margin-top:4px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+    .cell{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;}
+    .lbl{font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+    .val{font-size:12px;font-weight:600;color:#0f172a;}
+    .full{grid-column:1/-1;}
+    .status{display:flex;gap:8px;margin-bottom:12px;}
+    .badge{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;}
+    .footer{border-top:1px solid #e2e8f0;padding-top:10px;font-size:9px;color:#94a3b8;text-align:center;}
+    @media print{body{padding:8px;}}
+  </style></head><body>
+  <div class="header">
+    <div class="av">${r.photo?`<img src="${r.photo}" style="width:52px;height:52px;border-radius:12px;object-fit:cover"/>`:p.ico}</div>
+    <div>
+      <div class="name">${r.nombre}</div>
+      <div class="folio">#${r.id} · ${r.folio}</div>
+      <div class="prog">${p.ico} ${p.lbl}</div>
+    </div>
+  </div>
+  <div class="status">
+    <div class="badge" style="background:${r.estatus==='Activo'?'#dcfce7':r.estatus==='Baja'?'#fee2e2':'#fef9c3'};color:${r.estatus==='Activo'?'#166534':r.estatus==='Baja'?'#991b1b':'#713f12'}">${r.estatus}</div>
+    <div class="badge" style="background:#dbeafe;color:#1e40af">${r.visita==='Si'?'✅ Visitado':r.visita==='Pendiente'?'⏳ Pendiente':'❌ Sin visita'}</div>
+    <div class="badge" style="background:#f3f4f6;color:#374151">${r.uso==='Mexico'?'🇲🇽 México':r.uso==='Estados Unidos'?'✈️ USA':r.uso}</div>
+  </div>
+  <div class="grid">
+    <div class="cell"><div class="lbl">📞 Teléfono</div><div class="val">${r.tel||'—'}</div></div>
+    <div class="cell"><div class="lbl">📅 Nacimiento</div><div class="val">${r.fnac||'—'}</div></div>
+    <div class="cell full"><div class="lbl">🏠 Domicilio</div><div class="val">${[r.dom,r.num,r.col].filter(Boolean).join(', ')||'—'}</div></div>
+    <div class="cell"><div class="lbl">📍 Sección</div><div class="val">${r.seccion||'—'}</div></div>
+    <div class="cell"><div class="lbl">🏘️ Área</div><div class="val">${r.area||'—'}</div></div>
+    <div class="cell"><div class="lbl">🗺️ Ruta</div><div class="val">${r.ruta||'—'}</div></div>
+    <div class="cell"><div class="lbl">🆔 CURP</div><div class="val" style="font-family:monospace;font-size:10px">${r.curp||'—'}</div></div>
+    ${r.obs?`<div class="cell full"><div class="lbl">📝 Observaciones</div><div class="val">${r.obs}</div></div>`:''}
+  </div>
+  <div class="footer">Pensionados MX · Generado ${new Date().toLocaleString('es-MX')} · Folio ${r.folio}</div>
+  <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+function dlCSVTemplate(){
+  const header='Folio,Nombre,Programa,Telefono,Domicilio,Numero,Colonia,Seccion,Area,Ruta,CURP,FechaNacimiento,Estatus,Observaciones';
+  const example='F-0001,GARCIA LOPEZ JUAN,PAM,492-000-0000,Calle Juarez,123,Centro,617,Norte,Ruta 1,GALJ800101HZSMRN05,1980-01-01,Activo,Ejemplo de registro';
+  const csv=header+'\n'+example+'\n';
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  dlFile('Plantilla_PensionadosMX.csv',URL.createObjectURL(blob),true);
+  snack('📥 Plantilla descargada','📥');
+}
 function dlBackupJSON(){
   const backup={version:'v12',fecha:nowStr(),registros:R,historial:H,visitas:V,eventos:E};
   const json=JSON.stringify(backup,null,2);
@@ -2278,7 +2452,7 @@ function openShAdd(){
   document.getElementById('sh-save-btn').textContent='💾 Guardar Beneficiario';
   const _snBtn=document.getElementById('sh-save-new-btn');if(_snBtn)_snBtn.style.display='block';
   document.getElementById('e-reason-wrap').style.display='none';
-  ['folio','nombre','tel','dom','num','col','obs','reason','seccion','curp','fnac'].forEach(f=>{
+  ['folio','nombre','tel','dom','num','col','obs','reason','seccion','curp','fnac','area','ruta','id-manual'].forEach(f=>{
     const el=document.getElementById('e-'+f);if(el)el.value='';
   });
   const _edDisp=document.getElementById('edad-display');if(_edDisp)_edDisp.style.display='none';
@@ -2328,6 +2502,9 @@ function openEditSh(id){
   const eCurp=document.getElementById('e-curp');if(eCurp)eCurp.value=r.curp||'';
   const eFnac=document.getElementById('e-fnac');if(eFnac){eFnac.value=r.fnac||'';updEdad();}
   const eSecEl=document.getElementById('e-seccion');if(eSecEl)eSecEl.value=r.seccion||'';
+  const eAreaEl=document.getElementById('e-area');if(eAreaEl)eAreaEl.value=r.area||'';
+  const eRutaEl=document.getElementById('e-ruta');if(eRutaEl)eRutaEl.value=r.ruta||'';
+  const eIdManEl=document.getElementById('e-id-manual');if(eIdManEl)eIdManEl.value='';
   document.getElementById('e-reason').value='';
   TG.vis=r.visita||'Pendiente';TG.uso=r.uso||'Mexico';TG.est=r.estatus||'Activo';
   setTGVal('vis',TG.vis);setTGVal('uso',TG.uso);setTGVal('est',TG.est);
@@ -2375,6 +2552,8 @@ function doSaveRec(){
     estatus:TG.est,
     obs:    document.getElementById('e-obs')?.value?.trim()||'',
     seccion:document.getElementById('e-seccion')?.value?.trim()||'',
+    area:   document.getElementById('e-area')?.value?.trim()||'',
+    ruta:   document.getElementById('e-ruta')?.value?.trim()||'',
     photo:  currentPhoto||null,
     txtColor: currentTxtColor||'',
     curp:   (document.getElementById('e-curp')?.value||'').trim().toUpperCase(),
@@ -2393,7 +2572,10 @@ function doSaveRec(){
     }
     Object.assign(r,nd);r.ult=nowStr();
   }else{
-    const rec={id:nxtId(),fecha:today(),ult:'',dup:false,...nd};
+    // ID manual: si el usuario ingresó uno y no está en uso, usarlo
+    const _idManualRaw = parseInt(document.getElementById('e-id-manual')?.value?.trim()||'');
+    const _idManual = (!isNaN(_idManualRaw) && _idManualRaw > 0 && !R.find(x=>x.id===_idManualRaw)) ? _idManualRaw : nxtId();
+    const rec={id:_idManual,fecha:today(),ult:'',dup:false,...nd};
     R.push(rec);
     H.push({id:Date.now(),folio:nd.folio,nombre:nd.nombre,cambios:'Beneficiario registrado',motivo:'Nuevo registro',resp:'Usuario',fecha:nowStr(),tipo:'new'});
     svH();
@@ -2481,10 +2663,16 @@ function openDet(id){
       <div class="df" onclick="inlineEdit(${r.id},'seccion','${r.seccion||''}','text','Sección / Ruta')">
         <div class="dl">📍 Sección</div><div class="dv" id="dv-seccion-${r.id}" style="font-weight:800;color:var(--a2)">${r.seccion||'—'}</div>
       </div>
+      <div class="df" onclick="inlineEdit(${r.id},'area','${r.area||''}','text','Área')">
+        <div class="dl">🏘️ Área</div><div class="dv" id="dv-area-${r.id}">${r.area||'—'}</div>
+      </div>
+      <div class="df" onclick="inlineEdit(${r.id},'ruta','${r.ruta||''}','text','Ruta')">
+        <div class="dl">🗺️ Ruta</div><div class="dv" id="dv-ruta-${r.id}">${r.ruta||'—'}</div>
+      </div>
       <div class="df full" onclick="inlineEditSelect(${r.id},'tipo','${r.tipo}',['PAM','PCD','JCF','MT','BBJ'])">
         <div class="dl">📋 Programa</div><div class="dv" id="dv-tipo-${r.id}"><span style="color:${p.clr}">${p.ico} ${p.lbl}</span></div>
       </div>
-      <div class="df full" onclick="inlineEditObs(${r.id})">
+      <div class="df full" onclick="inlineEdit(${r.id},'obs','${(r.obs||'').replace(/'/g,\"\'\").replace(/\`/g,'\\`')}','text','Observaciones / Notas')">
         <div class="dl">📝 Observaciones</div><div class="dv" id="dv-obs-${r.id}" style="color:var(--sft)">${r.obs||'—'}</div>
       </div>
       <div class="df"><div class="dl">📅 Registro</div><div class="dv">${fmtD(r.fecha)}</div></div>
@@ -2493,9 +2681,14 @@ function openDet(id){
     ${histHtml}
     <div class="btn2" style="margin-top:12px">
       <button type="button" class="btn btn-s" onclick="openEditSh(${r.id})">✏️ Editar completo</button>
+      <button type="button" class="btn btn-s" onclick="printRecord(${r.id})">🖨️ Ficha imprimible</button>
+    </div>
+    <div class="btn2" style="margin-top:6px">
+      <button type="button" class="btn btn-s" onclick="shareRecord(${r.id})">📤 Compartir</button>
       <button type="button" class="btn btn-s" style="color:var(--red);border-color:var(--red)" onclick="confDel(${r.id})">🗑️ Eliminar</button>
     </div>
     ${r.dup?`<button type="button" class="btn btn-d mt8" onclick="confDel(${r.id})">🗑️ Eliminar este duplicado</button>`:''}
+  `;
   `;
   openSheet('sh-det');
 }
@@ -2520,7 +2713,8 @@ function setDA(id,field,val,e){
 let pendAct=null;
 function conf2(t,m,fn,btnTxt='Eliminar'){
   document.getElementById('conf-t').textContent=t;
-  document.getElementById('conf-m').textContent=m;
+  const mEl=document.getElementById('conf-m');
+  if(m&&m.trim().startsWith('<')){mEl.innerHTML=m;}else{mEl.textContent=m;}
   document.getElementById('conf-ok').textContent=btnTxt;
   pendAct=fn;
   document.getElementById('conf').classList.add('on');
@@ -2595,9 +2789,10 @@ let srchVoice=null,srchDeb=null;
 const FLD_LBL={nombre:'Nombre',folio:'Folio',id:'ID',tipo:'Programa',tel:'Teléfono',dom:'Domicilio',num:'Número',col:'Colonia',obs:'Obs.',estatus:'Estatus',visita:'Visita',uso:'Uso'};
 function renderSFPills(){
   const base=[['all','🔍 Todos'],['PAM','👴 PAM'],['PCD','♿ PCD'],['usa','✈️ USA'],['vis_si','✅ Visitados'],['vis_no','❌ Sin visita'],['dup','⚠️ Dup']];
-  const secs=[...new Set(R.map(r=>r.seccion).filter(Boolean))].sort();
-  const secP=secs.map(s=>['sec_'+s,'📍 Sec.'+s]);
-  const all=[...base,...secP];
+  const secs=[...new Set(R.map(r=>r.seccion).filter(Boolean))].sort().map(s=>['sec_'+s,'📍 '+s]);
+  const areas=[...new Set(R.map(r=>r.area).filter(Boolean))].sort().map(a=>['area_'+a,'🏘️ '+a]);
+  const rutas=[...new Set(R.map(r=>r.ruta).filter(Boolean))].sort().map(rt=>['ruta_'+rt,'🗺️ '+rt]);
+  const all=[...base,...secs,...areas,...rutas];
   const el=document.getElementById('sf-pills');
   if(el)el.innerHTML=all.map(([v,l])=>`<button class="sfp${sfFilter===v?' on':''}" onclick="setSFP('${v}')">${l}</button>`).join('');
 }
@@ -2690,6 +2885,8 @@ function execSrch(q,forceShow=false){
     if(sfFilter==='vis_no')return r.visita==='No';
     if(sfFilter==='vis_pend')return r.visita==='Pendiente';
     if(sfFilter.startsWith('sec_'))return r.seccion===sfFilter.slice(4);
+    if(sfFilter.startsWith('area_'))return r.area===sfFilter.slice(5);
+    if(sfFilter.startsWith('ruta_'))return r.ruta===sfFilter.slice(5);
     if(sfFilter==='dup'){detectDups();return r.dup;}
     return r.tipo===sfFilter;
   });
@@ -2853,16 +3050,8 @@ function renderVis(){
 }
 function markVis(vid){
   const v=V.find(x=>x.id===vid);if(!v)return;
-  let cnt=0;
-  v.people.forEach(p=>{
-    p.status='Visitado';
-    const r=R.find(x=>x.id===p.id);
-    if(r&&r.visita!=='Si'){r.visita='Si';r.ult=nowStr();cnt++;}
-  });
-  H.push({id:Date.now(),folio:'VISITA',nombre:v.title,cambios:`${cnt} persona(s) marcadas como visitadas`,motivo:'Desde agenda',resp:'Usuario',fecha:nowStr(),tipo:'edit'});
-  svR();svH();svV();renderVis();
-  if(curTab==='inicio')renderInicio();
-  snack(`✅ ${cnt} visitado${cnt!==1?'s':''}  marcados`,'✅');
+  v.people.forEach(p=>{p.status='Visitado';const r=R.find(x=>x.id===p.id);if(r)r.visita='Si';});
+  svR();svV();renderVis();snack('✅ Todos visitados','✅');
 }
 function delVis(vid){conf2('Eliminar visita','¿Eliminar esta visita?',()=>{V=V.filter(x=>x.id!==vid);svV();renderVis();snack('🗑️ Visita eliminada','🗑️');});}
 
@@ -2933,7 +3122,18 @@ function renderStats(){
     <div class="ch-card">
       <div class="ch-title">🚗 Estado de visitas</div>
       ${[['✅ Visitados',visOk,'#22c55e'],['⏳ Pendiente',visPe,'#fbbf24'],['❌ Sin visita',visNo,'#f87171']].map(([l,n,c])=>`<div class="bar-row"><div class="bar-lbl">${l}</div><div class="bar-wrap"><div class="bar-fill" style="width:${total?Math.round(n/total*100):0}%;background:${c}"></div></div><div class="bar-n" style="color:${c}">${n}</div></div>`).join('')}
-    </div>`;
+    </div>
+    ${(()=>{
+      const aD=[...new Set(R.map(r=>r.area).filter(Boolean))].sort()
+        .map(a=>{const cnt=R.filter(r=>r.area===a).length;const vis=R.filter(r=>r.area===a&&r.visita==='Si').length;return{a,cnt,vis};});
+      return aD.length?`<div class="ch-card"><div class="ch-title">🏘️ Avance por Área</div>${aD.map(({a,cnt,vis})=>`<div class="bar-row"><div class="bar-lbl" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a}</div><div class="bar-wrap"><div class="bar-fill" style="width:${cnt?Math.round(vis/cnt*100):0}%;background:#22c55e"></div></div><div class="bar-n" style="color:var(--grn)">${vis}/${cnt}</div></div>`).join('')}</div>`:'';
+    })()}
+    ${(()=>{
+      const rD=[...new Set(R.map(r=>r.ruta).filter(Boolean))].sort()
+        .map(rt=>{const cnt=R.filter(r=>r.ruta===rt).length;const vis=R.filter(r=>r.ruta===rt&&r.visita==='Si').length;return{rt,cnt,vis};});
+      return rD.length?`<div class="ch-card"><div class="ch-title">🗺️ Avance por Ruta</div>${rD.map(({rt,cnt,vis})=>`<div class="bar-row"><div class="bar-lbl" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${rt}</div><div class="bar-wrap"><div class="bar-fill" style="width:${cnt?Math.round(vis/cnt*100):0}%;background:#60a5fa"></div></div><div class="bar-n" style="color:var(--a2)">${vis}/${cnt}</div></div>`).join('')}</div>`:'';
+    })()}
+    \`;
 }
 function buildDonut(segs){
   const tot=segs.reduce((s,x)=>s+x.n,0);if(!tot)return'';
@@ -2945,11 +3145,11 @@ function buildDonut(segs){
 /* ===== DOWNLOAD ===== */
 function renderDL(){
   detectDups();
-  const prev=R.slice(0,3).map(r=>`${r.folio},${r.nombre},${r.tipo},${r.uso}`).join('\n');
-  document.getElementById('dl-prev').textContent=`FOLIO,NOMBRE,TIPO,USO,...\n${prev}\n...${R.length} registros`;
+  const prev=R.slice(0,3).map(r=>`${r.folio},${r.nombre},${r.tipo},${r.seccion||''},${r.area||''},${r.ruta||''}`).join('\n');
+  document.getElementById('dl-prev').textContent=`FOLIO,NOMBRE,TIPO,SECCIÓN,ÁREA,RUTA,...\n${prev}\n...${R.length} registros`;
 }
-const COLS=['ID','Folio','Nombre','Programa','Teléfono','Domicilio','Número','Colonia','Visita','Uso','Estatus','Fecha','Ult.Edición','Obs.','Duplicado'];
-const rowData=r=>[r.id,r.folio,r.nombre,r.tipo,r.tel||'',r.dom||'',r.num||'',r.col||'',r.visita,r.uso,r.estatus,r.fecha||'',r.ult||'',r.obs||'',r.dup?'SI':'NO'];
+const COLS=['ID','Folio','Nombre','Programa','Teléfono','Domicilio','Número','Colonia','Sección','Área','Ruta','CURP','F.Nac','Visita','Uso','Estatus','Fecha','Ult.Edición','Obs.','Duplicado'];
+const rowData=r=>[r.id,r.folio,r.nombre,r.tipo,r.tel||'',r.dom||'',r.num||'',r.col||'',r.seccion||'',r.area||'',r.ruta||'',r.curp||'',r.fnac||'',r.visita,r.uso,r.estatus,r.fecha||'',r.ult||'',r.obs||'',r.dup?'SI':'NO'];
 function dlFile(name,url,isBlob=false){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);if(isBlob)URL.revokeObjectURL(url);},300);}
 function dlCSV(){const rows=[COLS,...R.map(rowData)];const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');dlFile(`Pensionados_${today()}.csv`,'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv));snack('⬇️ CSV descargado','⬇️');}
 function dlHistCSV(){const rows=[['ID','Folio','Nombre','Cambios','Motivo','Resp.','Fecha'],...H.map(h=>[h.id,h.folio,h.nombre,h.cambios,h.motivo,h.resp,h.fecha])];const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');dlFile(`Historial_${today()}.csv`,'data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv));snack('⬇️ Historial descargado','⬇️');}
@@ -2973,26 +3173,6 @@ function dlXLSX(){
   dlFile(`Pensionados_${today()}.xlsx`,URL.createObjectURL(blob),true);snack('⬇️ Excel descargado','⬇️');
 }
 
-/* ===== IMPORTAR PAGE ===== */
-function renderImportar(){
-  // Actualiza stats de la pantalla de importar
-  const wrap = document.getElementById('imp-stats-bar');
-  if(wrap){
-    const dups = R.filter(r=>r.dup).length;
-    wrap.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-        <div class="sec-pg-scard"><div class="sec-pg-scard-n" style="color:var(--a2)">${R.length}</div><div class="sec-pg-scard-l">Registros</div></div>
-        <div class="sec-pg-scard"><div class="sec-pg-scard-n" style="color:var(--grn)">${R.filter(r=>r.estatus==='Activo').length}</div><div class="sec-pg-scard-l">Activos</div></div>
-        <div class="sec-pg-scard"><div class="sec-pg-scard-n" style="color:${dups>0?'var(--red)':'var(--grn)'}">${dups}</div><div class="sec-pg-scard-l">Duplicados</div></div>
-      </div>`;
-  }
-  // Limpiar resultado previo si se vuelve a entrar
-  const out = document.getElementById('imp-out');
-  if(out && out.innerHTML === '') {
-    out.innerHTML = '<div style="text-align:center;padding:20px;color:var(--mut);font-size:12px">📋 Selecciona un archivo CSV para comenzar</div>';
-  }
-}
-
 /* ===== IMPORT ===== */
 function handleImp(ev){
   const file=ev.target.files[0];if(!file)return;
@@ -3005,26 +3185,90 @@ function handleImp(ev){
 function procCSV(text,fname,out){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(lines.length<2){out.innerHTML='<div class="imp-res bad">⚠️ Archivo vacío</div>';return;}
-  const sep=lines[0].includes(';')?';':',';
-  const hdrs=lines[0].split(sep).map(h=>h.trim().toLowerCase().replace(/[^a-z0-9]/gi,''));
-  const FM={folio:['folio','id','clave'],nombre:['nombre','nombrecompleto'],tipo:['tipo','programa'],tel:['telefono','tel'],dom:['domicilio','calle'],num:['numero','num'],col:['colonia','municipio'],estatus:['estatus','status'],obs:['observacion','notas']};
-  const ci={};Object.keys(FM).forEach(f=>{for(const a of FM[f]){const i=hdrs.findIndex(h=>h.includes(a));if(i>=0){ci[f]=i;break;}}});
-  const gc=(cells,f)=>{const i=ci[f];return i>=0&&i<cells.length?cells[i].trim().replace(/^"|"$/g,''):'';};
+  // Detectar separador automáticamente (coma, punto y coma, tab, pipe)
+  const firstLine=lines[0];
+  const sep=[',',';','\t','|'].reduce((best,s)=>{
+    const cnt=firstLine.split(s).length;
+    return cnt>(firstLine.split(best).length)?s:best;
+  },',');
+  // Limpiar y normalizar encabezados — funciona aunque estén desordenados
+  const hdrs=firstLine.split(sep).map(h=>h.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // quitar acentos
+    .replace(/[^a-z0-9]/g,''));                        // solo alfanumérico
+  // Mapa flexible de sinónimos por campo
+  const FM={
+    folio:   ['folio','id','clave','idbeneficiario','numbeneficiario','numero','cod','code','idregistro'],
+    nombre:  ['nombre','nombrecompleto','name','beneficiario','nombrebeneficiario','apellido','apellidos'],
+    tipo:    ['tipo','programa','program','tipoprograma','modalidad','beneficio'],
+    tel:     ['telefono','tel','celular','movil','phone','contact','contacto','whatsapp'],
+    dom:     ['domicilio','calle','direccion','address','domiciliobeneficiario','calle1'],
+    num:     ['numero','num','ext','interior','noexterior','nointerior','numerocasa'],
+    col:     ['colonia','municipio','localidad','barrio','coloniamunicipio','comunidad','delegacion'],
+    seccion: ['seccion','secciones','section','sec','zona'],
+    area:    ['area','zona','region','distrito','zonal','distrito'],
+    ruta:    ['ruta','route','camino','circuito','recorrido'],
+    curp:    ['curp','claverica','rfc','ife','ine','credencial'],
+    fnac:    ['fechanacimiento','nacimiento','fnac','fechanac','dob','birthday','fechadenat'],
+    estatus: ['estatus','status','estado','situacion','activo'],
+    obs:     ['observacion','obs','notas','nota','notes','comentarios','comentario','descripcion'],
+  };
+  // Mapeo automático — encuentra la columna aunque esté en cualquier posición
+  const ci={};
+  Object.keys(FM).forEach(field=>{
+    for(const alias of FM[field]){
+      const i=hdrs.findIndex(h=>h===alias||h.includes(alias)||alias.includes(h));
+      if(i>=0){ci[field]=i;break;}
+    }
+  });
+  // Mostrar qué columnas se reconocieron
+  const recognized=Object.keys(ci).length;
+  const total=hdrs.length;
+  // Función para extraer celda (maneja comillas y espacios)
+  const gc=(cells,f)=>{
+    const i=ci[f];
+    if(i===undefined||i<0||i>=cells.length)return'';
+    return cells[i].trim().replace(/^["']|["']$/g,'').trim();
+  };
+  // Parser de línea CSV robusto (maneja comas dentro de comillas)
+  function parseCSVLine(line,sep){
+    if(sep!==',')return line.split(sep);
+    const cells=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){cells.push(cur);cur='';}
+      else cur+=c;
+    }
+    cells.push(cur);
+    return cells;
+  }
   const exFolios=new Map(R.map(r=>[r.folio,r]));
   const newF=new Set();
   let added=0,inFileDups=[],toUpdate=[],toAdd=[];
   lines.slice(1).filter(l=>l.trim()).forEach((line,idx)=>{
-    const cells=line.split(sep);
+    const cells=parseCSVLine(line,sep);
     const folio=(gc(cells,'folio')||`IMP-${idx+1}`).toUpperCase();
     const nombre=gc(cells,'nombre').toUpperCase();
     const tipoR=gc(cells,'tipo').toUpperCase();
     const tipo=['PAM','PCD','JCF','MT','BBJ'].includes(tipoR)?tipoR:'PAM';
     if(!nombre)return;
-    const incoming={folio,nombre,tipo,tel:gc(cells,'tel'),dom:gc(cells,'dom'),num:gc(cells,'num'),col:gc(cells,'col'),estatus:gc(cells,'estatus')||'Activo',obs:gc(cells,'obs')};
+    const incoming={
+      folio,nombre,tipo,
+      tel:    gc(cells,'tel'),
+      dom:    gc(cells,'dom'),
+      num:    gc(cells,'num'),
+      col:    gc(cells,'col'),
+      seccion:gc(cells,'seccion'),
+      area:   gc(cells,'area'),
+      ruta:   gc(cells,'ruta'),
+      curp:   gc(cells,'curp').toUpperCase(),
+      fnac:   gc(cells,'fnac'),
+      estatus:gc(cells,'estatus')||'Activo',
+      obs:    gc(cells,'obs'),
+    };
     if(exFolios.has(folio)){
-      // Detect field-by-field changes
       const exist=exFolios.get(folio);
-      const LABELS={nombre:'Nombre',tel:'Teléfono',dom:'Domicilio',num:'Número',col:'Colonia',estatus:'Estatus',obs:'Obs.',tipo:'Programa'};
+      const LABELS={nombre:'Nombre',tel:'Teléfono',dom:'Domicilio',num:'Número',col:'Colonia',seccion:'Sección',area:'Área',ruta:'Ruta',curp:'CURP',estatus:'Estatus',obs:'Obs.',tipo:'Programa'};
       const changes=[];
       Object.keys(LABELS).forEach(k=>{
         const ov=(exist[k]||'').trim(),nv=(incoming[k]||'').trim();
@@ -3036,17 +3280,20 @@ function procCSV(text,fname,out){
     if(newF.has(folio)){inFileDups.push(incoming);return;}
     newF.add(folio);toAdd.push(incoming);
   });
-  // Add new records
   toAdd.forEach(rec=>{
-    R.push({id:nxtId()+added,folio:rec.folio,nombre:rec.nombre,tipo:rec.tipo,tel:rec.tel,dom:rec.dom,num:rec.num,col:rec.col,visita:'Pendiente',uso:'Mexico',estatus:rec.estatus,obs:rec.obs,fecha:today(),ult:'',dup:false});
+    R.push({id:nxtId()+added,folio:rec.folio,nombre:rec.nombre,tipo:rec.tipo,tel:rec.tel,dom:rec.dom,num:rec.num,col:rec.col,seccion:rec.seccion,area:rec.area,ruta:rec.ruta,curp:rec.curp,fnac:rec.fnac,visita:'Pendiente',uso:'Mexico',estatus:rec.estatus,obs:rec.obs,fecha:today(),ult:'',dup:false});
     added++;
   });
   detectDups();svR();upHdr();
-  // Build result HTML
+  // Mostrar columnas reconocidas
+  const colMap=Object.entries(ci).map(([f,i])=>`<span style="background:var(--s2);padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;color:var(--grn)">${hdrs[i]}→${f}</span>`).join(' ');
+  const colMiss=hdrs.filter((_,i)=>!Object.values(ci).includes(i)).map(h=>`<span style="background:var(--s2);padding:2px 6px;border-radius:4px;font-size:9px;color:var(--mut)">${h}</span>`).join(' ');
   let html=`<div class="imp-res ok"><b>📂 ${fname}</b><br>
     <span style="color:var(--grn);font-size:13px;font-weight:800">✅ ${added} nuevos importados</span><br>
     ${toUpdate.length?`<span style="color:var(--org);font-size:12px;font-weight:700">🔄 ${toUpdate.length} con cambios detectados</span><br>`:''}
-    ${inFileDups.length?`<span style="color:var(--red);font-size:11px">⚠️ ${inFileDups.length} duplicados en el archivo</span>`:''}
+    ${inFileDups.length?`<span style="color:var(--red);font-size:11px">⚠️ ${inFileDups.length} duplicados en el archivo</span><br>`:''}
+    <div style="margin-top:8px"><span style="font-size:9px;font-weight:800;color:var(--sft);text-transform:uppercase">Columnas reconocidas (${recognized}/${total}):</span><br><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${colMap}</div></div>
+    ${colMiss?`<div style="margin-top:5px"><span style="font-size:9px;color:var(--mut)">Sin reconocer: ${colMiss}</span></div>`:''}
   </div>`;
   if(toUpdate.length){
     window._impUpd=toUpdate.map(u=>({...u}));
@@ -3399,6 +3646,7 @@ function renderSecPg(){
     const usa=regs.filter(r=>r.uso==='Estados Unidos').length;
     const act=regs.filter(r=>r.estatus==='Activo').length;
     const pct=cnt?Math.round(vis/cnt*100):0;
+    const prog=Object.entries(regs.reduce((a,r)=>{a[r.tipo]=(a[r.tipo]||0)+1;return a;},{}).valueOf?{}:regs.reduce((a,r)=>{a[r.tipo]=(a[r.tipo]||0)+1;return a;},{}));
     // Build program breakdown
     const progBreak=Object.entries(regs.reduce((a,r)=>{a[r.tipo]=(a[r.tipo]||0)+1;return a;},{}))
       .sort((a,b)=>b[1]-a[1]).slice(0,3)
@@ -3475,13 +3723,23 @@ function toggleSrchAdv(){
     const sel=document.getElementById('srch-f-sec');
     if(sel){
       const secs=[...new Set(R.map(r=>r.seccion).filter(Boolean))].sort();
-      sel.innerHTML='<option value="">Todas las secciones</option>'+secs.map(s=>`<option value="${s}">📍 Sección ${s}</option>`).join('');
+      sel.innerHTML='<option value="">Todas las secciones</option>'+secs.map(s=>`<option value="${s}">📍 ${s}</option>`).join('');
+    }
+    const selA=document.getElementById('srch-f-area');
+    if(selA){
+      const areas=[...new Set(R.map(r=>r.area).filter(Boolean))].sort();
+      selA.innerHTML='<option value="">Todas las áreas</option>'+areas.map(a=>`<option value="${a}">🏘️ ${a}</option>`).join('');
+    }
+    const selR=document.getElementById('srch-f-ruta');
+    if(selR){
+      const rutas=[...new Set(R.map(r=>r.ruta).filter(Boolean))].sort();
+      selR.innerHTML='<option value="">Todas las rutas</option>'+rutas.map(r=>`<option value="${r}">🗺️ ${r}</option>`).join('');
     }
   }
 }
 
 function clearSrchAdv(){
-  ['srch-f-tipo','srch-f-est','srch-f-vis','srch-f-uso','srch-f-sec'].forEach(id=>{
+  ['srch-f-tipo','srch-f-est','srch-f-vis','srch-f-uso','srch-f-sec','srch-f-area','srch-f-ruta'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   execSrchAdv();
@@ -3494,20 +3752,24 @@ function getAdvFilters(){
     vis:  document.getElementById('srch-f-vis')?.value||'',
     uso:  document.getElementById('srch-f-uso')?.value||'',
     sec:  document.getElementById('srch-f-sec')?.value||'',
+    area: document.getElementById('srch-f-area')?.value||'',
+    ruta: document.getElementById('srch-f-ruta')?.value||'',
   };
 }
 
 function execSrchAdv(){
   const q=(document.getElementById('sq')?.value||'').trim();
   const f=getAdvFilters();
-  const hasFilter=f.tipo||f.est||f.vis||f.uso||f.sec||q;
+  const hasFilter=f.tipo||f.est||f.vis||f.uso||f.sec||f.area||f.ruta||q;
   if(!hasFilter){showSrchIdle();return;}
   let pool=R.slice();
   if(f.tipo)pool=pool.filter(r=>r.tipo===f.tipo);
   if(f.est) pool=pool.filter(r=>r.estatus===f.est);
   if(f.vis) pool=pool.filter(r=>r.visita===f.vis);
   if(f.uso) pool=pool.filter(r=>r.uso===f.uso);
-  if(f.sec) pool=pool.filter(r=>r.seccion===f.sec);
+  if(f.sec)  pool=pool.filter(r=>r.seccion===f.sec);
+  if(f.area) pool=pool.filter(r=>r.area===f.area);
+  if(f.ruta) pool=pool.filter(r=>r.ruta===f.ruta);
   if(q){
     const ql=q.toLowerCase();
     pool=pool.filter(r=>r.nombre.toLowerCase().includes(ql)||r.folio.toLowerCase().includes(ql)||(r.tel||'').includes(ql)||(r.col||'').toLowerCase().includes(ql)||(r.dom||'').toLowerCase().includes(ql)||(r.obs||'').toLowerCase().includes(ql)||(r.seccion||'').includes(ql));
@@ -3675,25 +3937,18 @@ function inlineEditObs(id){
 }
 
 /* ===== INIT ===== */
-// Migrar datos de versiones anteriores si v10 está vacío
+// Load data from v9 keys if v10 is empty
 (function migrateData(){
-  const curR = localStorage.getItem('px_v10_r');
-  if(!curR || JSON.parse(curR).length === 0){
-    // Intentar claves anteriores en orden de prioridad
-    const oldKeys = ['px_v9_r','px_v8_r','px_r','pensionados_r'];
-    for(const key of oldKeys){
-      const old = localStorage.getItem(key);
-      if(old){
-        try{
-          const d = JSON.parse(old);
-          if(Array.isArray(d) && d.length > 0){ R = d; svR(); break; }
-        }catch(e){}
-      }
-    }
+  const oldR=localStorage.getItem('px_v10_r');
+  if(!oldR||JSON.parse(oldR).length===0){
+    // Try old key
+    const v9=localStorage.getItem('px_v9_r')||localStorage.getItem('px_v10_r');
+    if(v9){const d=JSON.parse(v9);if(d.length>0){R=d;svR();}}
   }
 })();
 
 detectDups();upHdr();selDay=today();
+updateStreak();
 renderInicio();renderChips();renderSFPills();
 </script>
 
