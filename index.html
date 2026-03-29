@@ -1960,51 +1960,108 @@ if('serviceWorker' in navigator){
   <div class="auth-logo">🛡️</div>
   <div class="auth-title">Pensionados MX</div>
   <div class="auth-sub">Sistema de gestión de beneficiarios</div>
+
   <div class="auth-card">
     <div class="auth-tabs">
-      <button class="auth-tab on" id="auth-tab-login" onclick="switchAuthTab('login')">🔐 Iniciar sesión</button>
-      <button class="auth-tab" id="auth-tab-setup" onclick="switchAuthTab('setup')">⚙️ Configurar</button>
+      <button class="auth-tab on" id="auth-tab-login"  onclick="switchAuthTab('login')">🔐 Acceso</button>
+      <button class="auth-tab"    id="auth-tab-setup"  onclick="switchAuthTab('setup')">⚙️ Configurar</button>
+      <button class="auth-tab"    id="auth-tab-emailcfg" onclick="switchAuthTab('emailcfg')">📧 Email</button>
     </div>
 
-    <!-- LOGIN PANEL -->
+    <!-- ── PANEL 1: LOGIN ── -->
     <div id="auth-panel-login">
       <div class="auth-err" id="auth-err-login"></div>
-      <label class="auth-label">Usuario</label>
-      <input class="auth-input" id="auth-user" type="text" placeholder="Nombre de usuario"
-        autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false"
-        onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()"/>
-      <label class="auth-label">Contraseña</label>
-      <input class="auth-input" id="auth-pass" type="password" placeholder="••••••••"
-        autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()"/>
-      <button class="auth-btn" onclick="doLogin()">Entrar</button>
-      <button class="auth-guest-btn" onclick="doGuest()">👤 Continuar como invitado</button>
+      <div id="auth-lockout-bar" style="display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;color:#f87171;margin-bottom:12px;text-align:center"></div>
+
+      <!-- STEP 1: user + pass -->
+      <div id="auth-step-creds">
+        <label class="auth-label">Usuario</label>
+        <input class="auth-input" id="auth-user" type="text" placeholder="Nombre de usuario"
+          autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false"
+          onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()"/>
+        <label class="auth-label">Contraseña</label>
+        <div style="position:relative">
+          <input class="auth-input" id="auth-pass" type="password" placeholder="••••••••"
+            autocomplete="current-password" style="padding-right:44px"
+            onkeydown="if(event.key==='Enter')doLogin()"/>
+          <button onclick="togglePassVis('auth-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--mut);cursor:pointer;font-size:16px;padding:4px">👁</button>
+        </div>
+        <div id="auth-attempts-bar" style="display:none;font-size:11px;color:var(--amb);margin-bottom:8px;text-align:center;font-weight:700"></div>
+        <button class="auth-btn" id="auth-login-btn" onclick="doLogin()">Entrar</button>
+        <button class="auth-guest-btn" onclick="doGuest()">👤 Continuar como invitado</button>
+      </div>
+
+      <!-- STEP 2: OTP verification -->
+      <div id="auth-step-otp" style="display:none">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:32px;margin-bottom:8px">📧</div>
+          <div style="font-size:14px;font-weight:800;margin-bottom:4px">Código de verificación</div>
+          <div id="auth-otp-sent-to" style="font-size:12px;color:var(--sft)">Se envió un código a tu correo</div>
+        </div>
+        <div class="auth-err" id="auth-err-otp"></div>
+        <label class="auth-label">Código de 6 dígitos</label>
+        <input class="auth-input" id="auth-otp-input" type="text" inputmode="numeric"
+          placeholder="000000" maxlength="6" autocomplete="one-time-code"
+          style="font-family:'Fira Code',monospace;font-size:22px;letter-spacing:8px;text-align:center"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'');if(this.value.length===6)verifyOTP()"
+          onkeydown="if(event.key==='Enter')verifyOTP()"/>
+        <button class="auth-btn" onclick="verifyOTP()">✅ Verificar código</button>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="auth-guest-btn" style="flex:1" onclick="resendOTP()">🔄 Reenviar</button>
+          <button class="auth-guest-btn" style="flex:1" onclick="cancelOTP()">✕ Cancelar</button>
+        </div>
+        <div id="auth-otp-timer" style="text-align:center;font-size:11px;color:var(--sft);margin-top:10px"></div>
+      </div>
     </div>
 
-    <!-- SETUP PANEL -->
+    <!-- ── PANEL 2: SETUP CREDENTIALS ── -->
     <div id="auth-panel-setup" style="display:none">
       <div class="auth-err" id="auth-err-setup"></div>
-      <div class="auth-ok" id="auth-ok-setup"></div>
-      <label class="auth-label">Usuario actual (para verificar)</label>
-      <input class="auth-input" id="setup-cur-user" type="text" placeholder="Usuario actual"
-        autocorrect="off" autocapitalize="none"/>
-      <label class="auth-label">Contraseña actual</label>
-      <input class="auth-input" id="setup-cur-pass" type="password" placeholder="Contraseña actual"
-        autocomplete="current-password"/>
+      <div class="auth-ok"  id="auth-ok-setup"></div>
+      <div id="setup-cur-block">
+        <label class="auth-label">Usuario actual</label>
+        <input class="auth-input" id="setup-cur-user" type="text" placeholder="Usuario actual" autocorrect="off" autocapitalize="none"/>
+        <label class="auth-label">Contraseña actual</label>
+        <input class="auth-input" id="setup-cur-pass" type="password" placeholder="Contraseña actual"/>
+      </div>
       <label class="auth-label">Nuevo usuario</label>
-      <input class="auth-input" id="setup-new-user" type="text" placeholder="Nuevo nombre de usuario"
-        autocorrect="off" autocapitalize="none" spellcheck="false"/>
+      <input class="auth-input" id="setup-new-user" type="text" placeholder="Nuevo nombre de usuario" autocorrect="off" autocapitalize="none" spellcheck="false"/>
+      <label class="auth-label">Correo electrónico (para verificación)</label>
+      <input class="auth-input" id="setup-email" type="email" placeholder="tucorreo@gmail.com" autocomplete="email"/>
       <label class="auth-label">Nueva contraseña</label>
-      <input class="auth-input" id="setup-new-pass" type="password" placeholder="Mínimo 4 caracteres"
-        autocomplete="new-password"/>
+      <input class="auth-input" id="setup-new-pass" type="password" placeholder="Mínimo 6 caracteres"/>
       <label class="auth-label">Confirmar contraseña</label>
       <input class="auth-input" id="setup-conf-pass" type="password" placeholder="Repetir contraseña"
-        autocomplete="new-password"
         onkeydown="if(event.key==='Enter')doSetupCreds()"/>
-      <button class="auth-btn" onclick="doSetupCreds()">💾 Guardar credenciales</button>
-      <p class="auth-setup-note" id="auth-first-time-note">
-        Primera vez: deja los campos actuales vacíos y elige tu usuario y contraseña.
-      </p>
+      <button class="auth-btn" onclick="doSetupCreds()">💾 Guardar</button>
+      <p class="auth-setup-note" id="auth-first-time-note">Primera vez: deja los campos actuales vacíos.</p>
+    </div>
+
+    <!-- ── PANEL 3: EMAIL / EMAILJS CONFIG ── -->
+    <div id="auth-panel-emailcfg" style="display:none">
+      <div class="auth-err" id="auth-err-emailcfg"></div>
+      <div class="auth-ok"  id="auth-ok-emailcfg"></div>
+      <div style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:12px;padding:12px;margin-bottom:14px;font-size:11px;line-height:1.6;color:var(--t2)">
+        <b style="color:var(--a2)">📋 Pasos para activar el email:</b><br>
+        1. Crea cuenta gratis en <b>emailjs.com</b><br>
+        2. Añade un servicio de email (Gmail, Outlook…)<br>
+        3. Crea una plantilla con variables: <code style="background:var(--s2);padding:1px 5px;border-radius:4px">{{otp}}</code> y <code style="background:var(--s2);padding:1px 5px;border-radius:4px">{{user}}</code><br>
+        4. Pega los IDs aquí abajo
+      </div>
+      <label class="auth-label">Public Key (de tu cuenta EmailJS)</label>
+      <input class="auth-input" id="cfg-ejs-pubkey" type="text" placeholder="user_XXXXXXXXXXXX" autocorrect="off" autocapitalize="none" spellcheck="false"/>
+      <label class="auth-label">Service ID</label>
+      <input class="auth-input" id="cfg-ejs-svc" type="text" placeholder="service_XXXXXXX" autocorrect="off" spellcheck="false"/>
+      <label class="auth-label">Template ID</label>
+      <input class="auth-input" id="cfg-ejs-tpl" type="text" placeholder="template_XXXXXXX" autocorrect="off" spellcheck="false"/>
+      <button class="auth-btn" onclick="saveEmailCfg()">💾 Guardar configuración</button>
+      <button class="auth-guest-btn" style="margin-top:8px" onclick="testOTPEmail()">📧 Enviar correo de prueba</button>
+      <div style="text-align:center;margin-top:10px">
+        <label style="font-size:12px;color:var(--sft);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="cfg-otp-required" style="width:16px;height:16px;accent-color:var(--a)"/>
+          <span>Requerir código OTP en cada inicio de sesión</span>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -2043,6 +2100,7 @@ if('serviceWorker' in navigator){
   <button class="tab" onclick="go('importar')">Importar</button>
   <button class="tab" onclick="go('secciones')">Secciones</button>
   <button class="tab" onclick="go('historial')">Historial</button>
+  <button class="tab" onclick="go('accesos')">🔐 Accesos</button>
 </div>
 <div class="main" id="main">
   <!-- INICIO -->
@@ -2278,6 +2336,14 @@ if('serviceWorker' in navigator){
     </div>
     <div class="sh2" id="hist-sh">Historial</div>
     <div id="hist-list"></div>
+  </div>
+  <!-- ACCESOS (Audit Log) -->
+  <div class="pg" id="p-accesos">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-s" style="flex:1;font-size:11px;padding:9px" onclick="dlAccessLog()">⬇️ Exportar accesos</button>
+      <button class="btn btn-s" style="flex:1;font-size:11px;padding:9px;color:var(--red);border-color:var(--red)" onclick="clearAccessLog()">🗑️ Limpiar log</button>
+    </div>
+    <div id="access-log-content"></div>
   </div>
 </div>
 <button class="fab" id="fab" onclick="openShAdd()" style="width:auto;border-radius:28px;padding:0 22px;gap:8px;font-size:14px;letter-spacing:-.2px"><span style="font-size:20px;line-height:1">＋</span><span style="font-size:13px;font-weight:800">Agregar</span></button>
@@ -2871,7 +2937,7 @@ document.getElementById('appear-btn').addEventListener('click',function(e){
 });
 
 /* ===== NAVIGATION ===== */
-const TABS=['inicio','registros','buscar','visitas','estadisticas','descargar','importar','secciones','historial'];
+const TABS=['inicio','registros','buscar','visitas','estadisticas','descargar','importar','secciones','historial','accesos'];
 let curTab='inicio';
 function go(tab){
   curTab=tab;
@@ -2881,7 +2947,7 @@ function go(tab){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   const nb=document.getElementById('nb-'+tab);if(nb)nb.classList.add('on');
   document.getElementById('main').scrollTop=0;
-  const noFab=['estadisticas','descargar','historial','secciones','importar'].includes(tab);
+  const noFab=['estadisticas','descargar','historial','secciones','importar','accesos'].includes(tab);
   document.getElementById('fab').style.display=noFab?'none':'flex';
   render(tab);
 }
@@ -2895,6 +2961,7 @@ function render(t){
   if(t==='importar')      renderImportarPg();
   if(t==='secciones')     renderSecPg();
   if(t==='historial')     renderHist();
+  if(t==='accesos')       renderAccessLog();
 }
 
 /* ===== RECORD CARD ===== */
@@ -5096,287 +5163,330 @@ function inlineEditObs(id){
 
 /* _updateStreak, detectDups, upHdr, renderInicio etc are called by startSession() */
 
-/* ═══════════════════════════════════════════════════
-   AUTH SYSTEM v28 — Login / Setup / Guest mode
-   ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   AUTH SYSTEM v29 — OTP Email · Brute-force lock · Audit log
+   ═══════════════════════════════════════════════════════════ */
 
-const AUTH_KEY = 'px_auth_v1';
+const AUTH_KEY    = 'px_auth_v1';
 const SESSION_KEY = 'px_session_v1';
+const ELOG_KEY    = 'px_access_log_v1';
+const EMAILCFG_KEY= 'px_emailcfg_v1';
+const LOCK_KEY    = 'px_lockout_v1';
+const MAX_ATTEMPTS= 5;
+const LOCK_MINS   = 15;
+const OTP_MINS    = 10;
 
-/* Hash function (simple SHA-like using Web Crypto, async) */
-async function hashStr(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+async function hashStr(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+const getAuthCreds  =()=>{try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null');}catch{return null;}};
+const getSession    =()=>{try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');}catch{return null;}};
+const getEmailCfg   =()=>{try{return JSON.parse(localStorage.getItem(EMAILCFG_KEY)||'null');}catch{return null;}};
+const getAccessLog  =()=>{try{return JSON.parse(localStorage.getItem(ELOG_KEY)||'[]');}catch{return[];}};
+const getLockout    =()=>{try{return JSON.parse(localStorage.getItem(LOCK_KEY)||'null');}catch{return null;}};
 
-/* Get stored credentials */
-function getAuthCreds() {
-  try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); }
-  catch { return null; }
+let authMode='',authUsername='',_pendingOTP='',_otpExpiry=0,_otpTimer=null,_pendingUser='';
+const isGuest=()=>authMode==='guest';
+const isAdmin=()=>authMode==='admin';
+
+/* ── Audit Log ── */
+function logAccess(type,username,detail=''){
+  const log=getAccessLog();
+  log.unshift({id:Date.now(),type,username,detail,
+    ts:new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    ua:navigator.userAgent.slice(0,80)});
+  if(log.length>200)log.splice(200);
+  localStorage.setItem(ELOG_KEY,JSON.stringify(log));
 }
 
-/* Check active session */
-function getSession() {
-  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); }
-  catch { return null; }
+function renderAccessLog(){
+  const log=getAccessLog();
+  const el=document.getElementById('access-log-content');
+  if(!el)return;
+  if(!log.length){el.innerHTML='<div class="empty"><div class="empty-ico">🔐</div><h3>Sin accesos registrados</h3><p>Los accesos aparecerán aquí</p></div>';return;}
+  const TYPE={login:{ico:'✅',lbl:'Inicio de sesión',clr:'var(--grn)'},otp_ok:{ico:'📧',lbl:'OTP verificado',clr:'var(--a2)'},otp_fail:{ico:'⚠️',lbl:'OTP incorrecto',clr:'var(--amb)'},logout:{ico:'🚪',lbl:'Cierre de sesión',clr:'var(--sft)'},guest:{ico:'👤',lbl:'Modo invitado',clr:'var(--amb)'},fail:{ico:'❌',lbl:'Contraseña incorrecta',clr:'var(--red)'},lockout:{ico:'🔒',lbl:'Cuenta bloqueada',clr:'var(--red)'}};
+  el.innerHTML=`<div class="sh2" style="margin-bottom:12px">Bitácora de accesos <span class="sh2-n">${log.length}</span></div>`+
+  log.map(e=>{const t=TYPE[e.type]||{ico:'ℹ️',lbl:e.type,clr:'var(--sft)'};return `<div style="background:var(--card);border:1px solid var(--b1);border-left:3px solid ${t.clr};border-radius:14px;padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 5px rgba(0,0,0,.12)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-size:16px">${t.ico}</span><div style="flex:1"><div style="font-size:12px;font-weight:800;color:${t.clr}">${t.lbl}</div><div style="font-size:10px;color:var(--mut);font-family:'Fira Code',monospace">${e.ts}</div></div><div style="background:var(--s2);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;color:var(--a2)">${e.username||'—'}</div></div>${e.detail?`<div style="font-size:10px;color:var(--sft);margin-left:24px">${e.detail}</div>`:''}<div style="font-size:9px;color:var(--mut);margin-left:24px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.ua||''}</div></div>`;}).join('');
 }
 
-/* Current mode: 'admin' | 'guest' | null */
-let authMode = null;
-let authUsername = '';
-
-function isGuest() { return authMode === 'guest'; }
-function isAdmin() { return authMode === 'admin'; }
-
-/* ── Switch login tabs ── */
-function switchAuthTab(tab) {
-  document.getElementById('auth-tab-login').classList.toggle('on', tab === 'login');
-  document.getElementById('auth-tab-setup').classList.toggle('on', tab === 'setup');
-  document.getElementById('auth-panel-login').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('auth-panel-setup').style.display = tab === 'setup' ? 'block' : 'none';
-  // Show "first time" note if no creds set yet
-  const hasCreds = !!getAuthCreds();
-  const note = document.getElementById('auth-first-time-note');
-  if (note) note.style.display = hasCreds ? 'none' : 'block';
-  const curFields = document.getElementById('setup-cur-user');
-  if (curFields) curFields.closest('.auth-card').querySelectorAll('[id^="setup-cur"]').forEach(el => {
-    el.style.display = hasCreds ? 'block' : 'none';
-    const lbl = el.previousElementSibling;
-    if (lbl && lbl.tagName === 'LABEL') lbl.style.display = hasCreds ? 'block' : 'none';
-  });
+function dlAccessLog(){
+  const log=getAccessLog();
+  if(!log.length){snack('Sin accesos para exportar','⚠️');return;}
+  const hdr='Tipo,Usuario,Fecha,Detalle';
+  const rows=log.map(e=>[e.type,e.username,e.ts,e.detail||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv=[hdr,...rows].join('\n');
+  dlFile(`AccesosPM_${today()}.csv`,'data:text/csv;charset=utf-8,\uFEFFENcodeURIComponent(csv)');
+  // Use proper URL
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  dlFile(`AccesosPM_${today()}.csv`,url,true);
+  snack('⬇️ Bitácora exportada','⬇️');
 }
+
+function clearAccessLog(){
+  conf2('Limpiar bitácora','¿Borrar todos los registros de acceso?',()=>{localStorage.removeItem(ELOG_KEY);renderAccessLog();snack('🗑️ Bitácora limpiada','🗑️');});
+}
+
+/* ── Brute Force ── */
+function checkLockout(){
+  const lock=getLockout();
+  if(!lock)return false;
+  const remaining=Math.ceil((lock.until-Date.now())/60000);
+  if(remaining>0){
+    const bar=document.getElementById('auth-lockout-bar');
+    if(bar){bar.textContent=`🔒 Bloqueado ${remaining} min más (${lock.attempts} intentos fallidos)`;bar.style.display='block';}
+    const btn=document.getElementById('auth-login-btn');
+    if(btn){btn.disabled=true;btn.style.opacity='.4';}
+    return true;
+  }
+  localStorage.removeItem(LOCK_KEY);return false;
+}
+
+function recordFailedAttempt(username){
+  const lock=getLockout()||{attempts:0,until:0};
+  lock.attempts=(lock.attempts||0)+1;
+  logAccess('fail',username,`Intento ${lock.attempts}/${MAX_ATTEMPTS}`);
+  if(lock.attempts>=MAX_ATTEMPTS){
+    lock.until=Date.now()+LOCK_MINS*60000;
+    localStorage.setItem(LOCK_KEY,JSON.stringify(lock));
+    logAccess('lockout',username,`Bloqueado ${LOCK_MINS} min`);
+    checkLockout();return;
+  }
+  localStorage.setItem(LOCK_KEY,JSON.stringify(lock));
+  const left=MAX_ATTEMPTS-lock.attempts;
+  const bar=document.getElementById('auth-attempts-bar');
+  if(bar){bar.textContent=`⚠️ ${left} intento${left!==1?'s':''} antes del bloqueo`;bar.style.display='block';}
+}
+
+function clearFailedAttempts(){
+  localStorage.removeItem(LOCK_KEY);
+  ['auth-attempts-bar','auth-lockout-bar'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  const btn=document.getElementById('auth-login-btn');
+  if(btn){btn.disabled=false;btn.style.opacity='';}
+}
+
+/* ── OTP ── */
+function generateOTP(){return String(Math.floor(100000+Math.random()*900000));}
+
+async function sendOTPEmail(email,otp,username){
+  const cfg=getEmailCfg();
+  if(!cfg||!cfg.pubkey||!cfg.svcId||!cfg.tplId)return false;
+  try{
+    if(!window.emailjs){
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+      emailjs.init({publicKey:cfg.pubkey});
+    }
+    await emailjs.send(cfg.svcId,cfg.tplId,{otp,user:username,app:'Pensionados MX',time:new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})});
+    return true;
+  }catch(e){console.error('EmailJS error:',e);return false;}
+}
+
+function startOTPTimer(){
+  clearOTPTimer();
+  const timerEl=document.getElementById('auth-otp-timer');
+  _otpTimer=setInterval(()=>{const left=Math.max(0,Math.ceil((_otpExpiry-Date.now())/1000));if(timerEl)timerEl.textContent=left>0?`⏱ Caduca en ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'⚠️ Código expirado';if(left<=0)clearOTPTimer();},1000);
+}
+function clearOTPTimer(){if(_otpTimer){clearInterval(_otpTimer);_otpTimer=null;}}
+
+async function initiateOTP(username,email){
+  _pendingOTP=generateOTP();_otpExpiry=Date.now()+OTP_MINS*60000;_pendingUser=username;
+  const sent=await sendOTPEmail(email,_pendingOTP,username);
+  if(!sent)return false;
+  document.getElementById('auth-step-creds').style.display='none';
+  document.getElementById('auth-step-otp').style.display='block';
+  const sentEl=document.getElementById('auth-otp-sent-to');
+  if(sentEl)sentEl.textContent='Código enviado a: '+email.replace(/(.{2}).+(@.+)/,'$1***$2');
+  document.getElementById('auth-otp-input').value='';
+  document.getElementById('auth-otp-input').focus();
+  startOTPTimer();return true;
+}
+
+function verifyOTP(){
+  const input=(document.getElementById('auth-otp-input').value||'').trim();
+  const err=document.getElementById('auth-err-otp');
+  if(!input){err.textContent='Ingresa el código';err.classList.add('on');return;}
+  if(Date.now()>_otpExpiry){err.textContent='⏱ Código expirado. Solicita uno nuevo.';err.classList.add('on');return;}
+  if(input===_pendingOTP){err.classList.remove('on');clearOTPTimer();logAccess('otp_ok',_pendingUser,'Verificación 2FA exitosa');startSession('admin',_pendingUser);resetOTPStep();}
+  else{err.textContent='❌ Código incorrecto';err.classList.add('on');logAccess('otp_fail',_pendingUser,'OTP incorrecto');document.getElementById('auth-otp-input').value='';}
+}
+
+async function resendOTP(){
+  const creds=getAuthCreds();if(!creds)return;
+  snack('📧 Reenviando…','📧');_pendingOTP=generateOTP();_otpExpiry=Date.now()+OTP_MINS*60000;
+  await sendOTPEmail(creds.email,_pendingOTP,_pendingUser);
+  startOTPTimer();document.getElementById('auth-otp-input').value='';document.getElementById('auth-otp-input').focus();
+}
+
+function cancelOTP(){clearOTPTimer();resetOTPStep();_pendingOTP='';_pendingUser='';}
+function resetOTPStep(){document.getElementById('auth-step-creds').style.display='block';document.getElementById('auth-step-otp').style.display='none';document.getElementById('auth-otp-input').value='';}
 
 /* ── Login ── */
-async function doLogin() {
-  const user = (document.getElementById('auth-user').value || '').trim().toLowerCase();
-  const pass = document.getElementById('auth-pass').value || '';
-  const err = document.getElementById('auth-err-login');
-
-  if (!user || !pass) {
-    err.textContent = '⚠️ Ingresa usuario y contraseña';
-    err.classList.add('on'); return;
-  }
-
-  const creds = getAuthCreds();
-  if (!creds) {
-    err.textContent = '⚙️ Aún no hay cuenta configurada. Ve a "Configurar".';
-    err.classList.add('on'); return;
-  }
-
-  const passHash = await hashStr(pass);
-  if (user === creds.user && passHash === creds.hash) {
-    err.classList.remove('on');
-    startSession('admin', user);
+async function doLogin(){
+  if(checkLockout())return;
+  const user=(document.getElementById('auth-user').value||'').trim().toLowerCase();
+  const pass=document.getElementById('auth-pass').value||'';
+  const err=document.getElementById('auth-err-login');
+  if(!user||!pass){err.textContent='⚠️ Ingresa usuario y contraseña';err.classList.add('on');return;}
+  const creds=getAuthCreds();
+  if(!creds){err.textContent='⚙️ Aún no hay cuenta configurada. Ve a "Configurar".';err.classList.add('on');return;}
+  const passHash=await hashStr(pass);
+  if(user===creds.user&&passHash===creds.hash){
+    err.classList.remove('on');clearFailedAttempts();
+    const cfg=getEmailCfg();
+    const otpRequired=cfg&&cfg.otpRequired&&creds.email;
+    if(otpRequired){
+      const btn=document.getElementById('auth-login-btn');
+      if(btn){btn.textContent='📧 Enviando código…';btn.disabled=true;}
+      const sent=await initiateOTP(user,creds.email);
+      if(btn){btn.textContent='Entrar';btn.disabled=false;}
+      if(!sent){logAccess('login',user,'Sin OTP (EmailJS no configurado)');startSession('admin',user);}
+    } else {logAccess('login',user,'Login directo');startSession('admin',user);}
   } else {
-    err.textContent = '❌ Usuario o contraseña incorrectos';
-    err.classList.add('on');
-    document.getElementById('auth-pass').value = '';
-    document.getElementById('auth-pass').focus();
+    err.textContent='❌ Usuario o contraseña incorrectos';err.classList.add('on');
+    document.getElementById('auth-pass').value='';document.getElementById('auth-pass').focus();
+    recordFailedAttempt(user||'desconocido');
   }
 }
 
-/* ── Guest mode ── */
-function doGuest() {
-  startSession('guest', 'Invitado');
+function doGuest(){logAccess('guest','Invitado','Acceso en modo invitado');startSession('guest','Invitado');}
+
+/* ── Session ── */
+function startSession(mode,username){
+  authMode=mode;authUsername=username;
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify({mode,username,ts:Date.now()}));
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+  const banner=document.getElementById('guest-banner');
+  if(banner)banner.classList.toggle('on',mode==='guest');
+  const gr=document.getElementById('guest-upgrade-row');
+  if(gr)gr.style.display=mode==='guest'?'flex':'none';
+  const btn=document.getElementById('hdr-user-btn');
+  if(btn){btn.textContent=mode==='guest'?'👤':username[0].toUpperCase();btn.title=mode==='guest'?'Invitado':username;btn.style.background=mode==='guest'?'var(--amb)':'';}
+  document.querySelectorAll('.tab').forEach(t=>{if(t.getAttribute('onclick')==="go('accesos')")t.style.display=mode==='guest'?'none':'';});
+  applyGuestMode(mode==='guest');
+  _updateStreak();detectDups();upHdr();selDay=today();
+  renderInicio();renderChips();renderSFPills();
 }
 
-/* ── Start session ── */
-function startSession(mode, username) {
-  authMode = mode;
-  authUsername = username;
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ mode, username, ts: Date.now() }));
-
-  // Hide auth screen, show app
-  document.getElementById('auth-screen').style.display = 'none';
-  const shell = document.getElementById('app-shell');
-  shell.style.display = 'flex';
-
-  // Guest banner
-  const banner = document.getElementById('guest-banner');
-  if (banner) banner.classList.toggle('on', mode === 'guest');
-
-  // Guest row in user menu
-  const gr = document.getElementById('guest-upgrade-row');
-  if (gr) gr.style.display = mode === 'guest' ? 'flex' : 'none';
-
-  // Update header user avatar
-  const btn = document.getElementById('hdr-user-btn');
-  if (btn) {
-    btn.textContent = mode === 'guest' ? '👤' : username[0].toUpperCase();
-    btn.title = mode === 'guest' ? 'Invitado' : username;
-    btn.style.background = mode === 'guest' ? 'var(--amb)' : '';
-  }
-
-  // Apply guest restrictions
-  applyGuestMode(mode === 'guest');
-
-  // Boot the app
-  _updateStreak();
-  detectDups(); upHdr(); selDay = today();
-  renderInicio(); renderChips(); renderSFPills();
+function applyGuestMode(g){
+  const fab=document.getElementById('fab');if(fab)fab.style.display=g?'none':'';
+  const nbDl=document.getElementById('nb-descargar');if(nbDl)nbDl.style.opacity=g?'.35':'';
+  document.title=g?'Pensionados MX — Invitado':'Pensionados MX v29';
 }
 
-/* ── Apply guest restrictions ── */
-function applyGuestMode(isGuest) {
-  // FAB (add button)
-  const fab = document.getElementById('fab');
-  if (fab) fab.style.display = isGuest ? 'none' : '';
-
-  // Bottom nav export
-  const nbDl = document.getElementById('nb-descargar');
-  if (nbDl) nbDl.style.opacity = isGuest ? '.35' : '';
-
-  // Title tag
-  document.title = isGuest ? 'Pensionados MX — Invitado' : 'Pensionados MX v28';
-}
-
-/* Guest action guard — call before any destructive action */
-function guestGuard(action) {
-  if (isGuest()) {
-    snack('🔒 Acción no disponible en modo invitado', '🔒');
-    return false;
-  }
-  if (action) action();
-  return true;
-}
-
-/* ── Logout ── */
-function doLogout() {
-  authMode = null;
-  authUsername = '';
-  sessionStorage.removeItem(SESSION_KEY);
+function doLogout(){
+  logAccess('logout',authUsername,'Cierre de sesión manual');
+  authMode='';authUsername='';sessionStorage.removeItem(SESSION_KEY);
   closeAllSheets();
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app-shell').style.display='none';
   document.getElementById('guest-banner').classList.remove('on');
-  // Clear login inputs
-  document.getElementById('auth-user').value = '';
-  document.getElementById('auth-pass').value = '';
+  document.getElementById('auth-user').value='';document.getElementById('auth-pass').value='';
   document.getElementById('auth-err-login').classList.remove('on');
-  switchAuthTab('login');
+  checkLockout();switchAuthTab('login');
 }
 
-/* ── Setup / change credentials ── */
-async function doSetupCreds() {
-  const existing = getAuthCreds();
-  const newUser = (document.getElementById('setup-new-user').value || '').trim().toLowerCase();
-  const newPass = document.getElementById('setup-new-pass').value || '';
-  const confPass = document.getElementById('setup-conf-pass').value || '';
-  const err = document.getElementById('auth-err-setup');
-  const ok  = document.getElementById('auth-ok-setup');
-  err.classList.remove('on'); ok.classList.remove('on');
-
-  // If credentials already exist, verify current ones first
-  if (existing) {
-    const curUser = (document.getElementById('setup-cur-user').value || '').trim().toLowerCase();
-    const curPass = document.getElementById('setup-cur-pass').value || '';
-    if (!curUser || !curPass) {
-      err.textContent = '⚠️ Ingresa las credenciales actuales para verificar';
-      err.classList.add('on'); return;
-    }
-    const curHash = await hashStr(curPass);
-    if (curUser !== existing.user || curHash !== existing.hash) {
-      err.textContent = '❌ Credenciales actuales incorrectas';
-      err.classList.add('on'); return;
-    }
-  }
-
-  // Validate new credentials
-  if (!newUser) { err.textContent = '⚠️ Ingresa un nombre de usuario'; err.classList.add('on'); return; }
-  if (newUser.length < 3) { err.textContent = '⚠️ El usuario debe tener al menos 3 caracteres'; err.classList.add('on'); return; }
-  if (!newPass) { err.textContent = '⚠️ Ingresa una contraseña'; err.classList.add('on'); return; }
-  if (newPass.length < 4) { err.textContent = '⚠️ La contraseña debe tener al menos 4 caracteres'; err.classList.add('on'); return; }
-  if (newPass !== confPass) { err.textContent = '❌ Las contraseñas no coinciden'; err.classList.add('on'); return; }
-
-  const hash = await hashStr(newPass);
-  localStorage.setItem(AUTH_KEY, JSON.stringify({ user: newUser, hash }));
-
-  ok.textContent = '✅ Credenciales guardadas correctamente';
-  ok.classList.add('on');
-
-  // Clear setup fields
-  ['setup-cur-user','setup-cur-pass','setup-new-user','setup-new-pass','setup-conf-pass']
-    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-
-  setTimeout(() => {
-    ok.classList.remove('on');
-    switchAuthTab('login');
-    document.getElementById('auth-user').value = newUser;
-    document.getElementById('auth-pass').focus();
-  }, 1800);
-}
-
-/* ── Open user menu sheet ── */
-function openUserMenu() {
-  const title = document.getElementById('user-menu-title');
-  if (title) {
-    title.textContent = isGuest()
-      ? '👤 Modo invitado'
-      : '👤 ' + authUsername.charAt(0).toUpperCase() + authUsername.slice(1);
-  }
+function openUserMenu(){
+  const title=document.getElementById('user-menu-title');
+  if(title)title.textContent=isGuest()?'👤 Modo invitado':'👤 '+(authUsername.charAt(0).toUpperCase()+authUsername.slice(1));
   openSheet('sh-user');
 }
 
-/* ── Intercept guest-restricted actions ── */
-const _origOpenShAdd = window.openShAdd;
-function openShAdd() {
-  if (isGuest()) { snack('🔒 Modo invitado — sin acceso para agregar', '🔒'); return; }
-  _origOpenShAdd();
-}
-
-const _origConfDel = window.confDel;
-function confDel(id) {
-  if (isGuest()) { snack('🔒 Modo invitado — sin acceso para eliminar', '🔒'); return; }
-  _origConfDel(id);
-}
-
-const _origDlCSV = window.dlCSV;
-function dlCSV() {
-  if (isGuest()) { snack('🔒 Modo invitado — sin acceso a exportar', '🔒'); return; }
-  _origDlCSV();
-}
-
-const _origDlXLSX = window.dlXLSX;
-function dlXLSX() {
-  if (isGuest()) { snack('🔒 Modo invitado — sin acceso a exportar', '🔒'); return; }
-  _origDlXLSX();
-}
-
-const _origDlBackupJSON = window.dlBackupJSON;
-function dlBackupJSON() {
-  if (isGuest()) { snack('🔒 Modo invitado — sin acceso a respaldos', '🔒'); return; }
-  _origDlBackupJSON();
-}
-
-const _origDoSaveRec = window.doSaveRec;
-function doSaveRec() {
-  if (isGuest()) { snack('🔒 Modo invitado — sin acceso para guardar', '🔒'); return; }
-  _origDoSaveRec();
-}
-
-/* ── AUTH INIT — runs on page load ── */
-(function authInit() {
-  // Check for an active session (survives page refresh within same tab)
-  const session = getSession();
-  if (session && session.mode) {
-    startSession(session.mode, session.username);
-    return;
+/* ── Setup ── */
+async function doSetupCreds(){
+  const existing=getAuthCreds();
+  const newUser=(document.getElementById('setup-new-user').value||'').trim().toLowerCase();
+  const newEmail=(document.getElementById('setup-email').value||'').trim();
+  const newPass=document.getElementById('setup-new-pass').value||'';
+  const confPass=document.getElementById('setup-conf-pass').value||'';
+  const err=document.getElementById('auth-err-setup');
+  const ok=document.getElementById('auth-ok-setup');
+  err.classList.remove('on');ok.classList.remove('on');
+  if(existing){
+    const curUser=(document.getElementById('setup-cur-user').value||'').trim().toLowerCase();
+    const curPass=document.getElementById('setup-cur-pass').value||'';
+    if(!curUser||!curPass){err.textContent='⚠️ Verifica con las credenciales actuales';err.classList.add('on');return;}
+    const curHash=await hashStr(curPass);
+    if(curUser!==existing.user||curHash!==existing.hash){err.textContent='❌ Credenciales actuales incorrectas';err.classList.add('on');return;}
   }
+  if(!newUser||newUser.length<3){err.textContent='⚠️ Usuario: mínimo 3 caracteres';err.classList.add('on');return;}
+  if(newEmail&&!/^[^@]+@[^@]+\.[^@]+$/.test(newEmail)){err.textContent='⚠️ Correo electrónico inválido';err.classList.add('on');return;}
+  if(!newPass||newPass.length<6){err.textContent='⚠️ Contraseña: mínimo 6 caracteres';err.classList.add('on');return;}
+  if(newPass!==confPass){err.textContent='❌ Las contraseñas no coinciden';err.classList.add('on');return;}
+  const hash=await hashStr(newPass);
+  localStorage.setItem(AUTH_KEY,JSON.stringify({user:newUser,hash,email:newEmail||''}));
+  ok.textContent='✅ Guardado correctamente';ok.classList.add('on');
+  ['setup-cur-user','setup-cur-pass','setup-new-user','setup-email','setup-new-pass','setup-conf-pass'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  setTimeout(()=>{ok.classList.remove('on');switchAuthTab('login');document.getElementById('auth-user').value=newUser;document.getElementById('auth-pass').focus();},1800);
+}
 
-  // No session — show auth screen
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app-shell').style.display = 'none';
+/* ── Email Config ── */
+function saveEmailCfg(){
+  const pubkey=(document.getElementById('cfg-ejs-pubkey').value||'').trim();
+  const svcId=(document.getElementById('cfg-ejs-svc').value||'').trim();
+  const tplId=(document.getElementById('cfg-ejs-tpl').value||'').trim();
+  const otpRequired=document.getElementById('cfg-otp-required')?.checked||false;
+  const err=document.getElementById('auth-err-emailcfg');
+  const ok=document.getElementById('auth-ok-emailcfg');
+  err.classList.remove('on');ok.classList.remove('on');
+  if(!pubkey||!svcId||!tplId){err.textContent='⚠️ Completa los 3 campos';err.classList.add('on');return;}
+  localStorage.setItem(EMAILCFG_KEY,JSON.stringify({pubkey,svcId,tplId,otpRequired}));
+  ok.textContent='✅ Configuración guardada';ok.classList.add('on');
+}
 
-  // If no creds configured yet, go to setup tab automatically
-  const hasCreds = !!getAuthCreds();
-  if (!hasCreds) {
-    switchAuthTab('setup');
-  } else {
-    switchAuthTab('login');
-    setTimeout(() => document.getElementById('auth-user')?.focus(), 300);
-  }
+async function testOTPEmail(){
+  const creds=getAuthCreds();
+  if(!creds||!creds.email){snack('⚠️ Configura un email en "Configurar" primero','⚠️');return;}
+  saveEmailCfg();const cfg=getEmailCfg();
+  if(!cfg||!cfg.pubkey){snack('⚠️ Guarda la configuración EmailJS primero','⚠️');return;}
+  snack('📧 Enviando correo de prueba…','📧');
+  const otp=generateOTP();
+  const ok=await sendOTPEmail(creds.email,otp,creds.user||'admin');
+  if(ok)snack('✅ Correo enviado. Revisa '+creds.email,'✅');
+  else snack('❌ Error. Verifica los IDs de EmailJS','❌');
+}
+
+function loadEmailCfgFields(){
+  const cfg=getEmailCfg();if(!cfg)return;
+  const f={'cfg-ejs-pubkey':cfg.pubkey||'','cfg-ejs-svc':cfg.svcId||'','cfg-ejs-tpl':cfg.tplId||''};
+  Object.entries(f).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const chk=document.getElementById('cfg-otp-required');if(chk)chk.checked=!!cfg.otpRequired;
+}
+
+/* ── Tabs ── */
+function switchAuthTab(tab){
+  ['login','setup','emailcfg'].forEach(t=>{
+    const btn=document.getElementById('auth-tab-'+t);const panel=document.getElementById('auth-panel-'+t);
+    if(btn)btn.classList.toggle('on',t===tab);if(panel)panel.style.display=t===tab?'block':'none';
+  });
+  if(tab==='emailcfg')loadEmailCfgFields();
+  const hasCreds=!!getAuthCreds();
+  const note=document.getElementById('auth-first-time-note');if(note)note.style.display=hasCreds?'none':'block';
+  const curBlock=document.getElementById('setup-cur-block');if(curBlock)curBlock.style.display=hasCreds?'block':'none';
+}
+
+function togglePassVis(inputId,btn){const el=document.getElementById(inputId);if(!el)return;const isPass=el.type==='password';el.type=isPass?'text':'password';btn.textContent=isPass?'🙈':'👁';}
+
+function guestGuard(action){if(isGuest()){snack('🔒 No disponible en modo invitado','🔒');return false;}if(action)action();return true;}
+
+const _origOpenShAdd=window.openShAdd;function openShAdd(){if(isGuest()){snack('🔒 Modo invitado — solo lectura','🔒');return;}_origOpenShAdd();}
+const _origConfDel=window.confDel;function confDel(id){if(isGuest()){snack('🔒 Modo invitado — solo lectura','🔒');return;}_origConfDel(id);}
+const _origDlCSV=window.dlCSV;function dlCSV(){if(isGuest()){snack('🔒 Modo invitado — solo lectura','🔒');return;}_origDlCSV();}
+const _origDlXLSX=window.dlXLSX;function dlXLSX(){if(isGuest()){snack('🔒 Modo invitado — solo lectura','🔒');return;}_origDlXLSX();}
+const _origDlBackupJSON=window.dlBackupJSON;function dlBackupJSON(){if(isGuest()){snack('🔒 Modo invitado — solo lectura','🔒');return;}_origDlBackupJSON();}
+const _origDoSaveRec=window.doSaveRec;function doSaveRec(){if(isGuest()){snack('🔒 Modo invitado — solo lectura','🔒');return;}_origDoSaveRec();}
+
+(function authInit(){
+  const session=getSession();
+  if(session&&session.mode){startSession(session.mode,session.username);return;}
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app-shell').style.display='none';
+  const hasCreds=!!getAuthCreds();
+  switchAuthTab(hasCreds?'login':'setup');
+  if(hasCreds)setTimeout(()=>document.getElementById('auth-user')?.focus(),300);
+  checkLockout();
 })();
-
 </script>
 
 <div class="sw-update-bar" id="sw-update-bar"><span>🔄 Nueva versión disponible</span><button onclick="navigator.serviceWorker.getRegistration().then(r=>{r&&r.waiting&&r.waiting.postMessage({type:'SKIP_WAITING'})});this.closest('[id=sw-update-bar]').style.display='none'" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:11px;font-weight:800;border-radius:8px;padding:5px 13px;cursor:pointer;font-family:var(--fnt)">Actualizar</button></div>
